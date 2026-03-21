@@ -7,7 +7,7 @@ dotenv.config();
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.string().default('5000').transform((val) => parseInt(val, 10)),
-  DATABASE_URL: z.string().url().describe('Database connection URL'),
+  DATABASE_URL: z.string().describe('Database connection URL'),
   JWT_SECRET: z.string().min(10).describe('JWT Secret Key for Authentication'),
   ALLOWED_ORIGINS: z.string().default('*').describe('Comma separated list of allowed cors origins'),
 });
@@ -15,7 +15,10 @@ const envSchema = z.object({
 const _env = envSchema.safeParse(process.env);
 
 if (!_env.success) {
-  console.error('❌ Invalid environment variables:', _env.error.format());
+  console.error('❌ Invalid environment variables:');
+  _env.error.issues.forEach((issue) => {
+    console.error(`  - ${issue.path.join('.')}: ${issue.message}`);
+  });
   process.exit(1);
 }
 
