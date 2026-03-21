@@ -9,6 +9,7 @@ const envSchema = z.object({
   PORT: z.string().default('5000').transform((val) => parseInt(val, 10)),
   DATABASE_URL: z.string().url().describe('Database connection URL'),
   JWT_SECRET: z.string().min(10).describe('JWT Secret Key for Authentication'),
+  ALLOWED_ORIGINS: z.string().default('*').describe('Comma separated list of allowed cors origins'),
 });
 
 const _env = envSchema.safeParse(process.env);

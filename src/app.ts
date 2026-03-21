@@ -1,15 +1,20 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
-import helmet from 'helmet';
 import morgan from 'morgan';
 import env from './config/env.config';
 import routes from './routes';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware';
+import { helmetConfig } from './config/helmet.config';
+import { authLimiter, globalLimiter } from './config/rateLimit.config';
+import { corsConfig } from './config/cors.config';
 
 const app: Application = express();
 
 // Set security HTTP headers
-app.use(helmet());
+app.use(helmetConfig);
+
+// Apply global rate limiting
+app.use(globalLimiter);
 
 // Parse json request body
 app.use(express.json());
@@ -18,14 +23,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Enable CORS
-app.use(cors());
+app.use(cors(corsConfig));
 
 // HTTP request logger middleware for development
 if (env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-// v1 API routes
+// v1 API routes (Apply authLimiter exclusively to auth routes)
+app.use('/api/v1/auth', authLimiter);
 app.use('/api/v1', routes);
 
 // Base route for health check

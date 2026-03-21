@@ -1,0 +1,23 @@
+src/middlewares/validate.middleware.ts(2,10): error TS2724: '"zod"' has no exported member named 'AnyZodObject'. Did you mean 'ZodObject'?
+src/middlewares/validate.middleware.ts(16,37): error TS2339: Property 'errors' does not exist on type 'ZodError<unknown>'.
+src/services/auth.service.ts(19,9): error TS2353: Object literal may only specify known properties, and 'password_hash' does not exist in type '(Without<UserCreateInput, UserUncheckedCreateInput> & UserUncheckedCreateInput) | (Without<...> & UserCreateInput)'.
+src/services/auth.service.ts(24,40): error TS2353: Object literal may only specify known properties, and 'full_name' does not exist in type 'UserSelect<DefaultArgs>'.
+src/services/auth.service.ts(35,24): error TS2339: Property 'password_hash' does not exist on type '{ id: string; email: string; name: string | null; createdAt: Date; updatedAt: Date; }'.
+src/services/auth.service.ts(39,63): error TS2339: Property 'password_hash' does not exist on type '{ id: string; email: string; name: string | null; createdAt: Date; updatedAt: Date; }'.
+src/services/auth.service.ts(44,15): error TS2339: Property 'is_active' does not exist on type '{ id: string; email: string; name: string | null; createdAt: Date; updatedAt: Date; }'.
+src/services/auth.service.ts(49,55): error TS2339: Property 'full_name' does not exist on type '{ id: string; email: string; name: string | null; createdAt: Date; updatedAt: Date; }'.
+src/services/auth.service.ts(50,23): error TS2339: Property 'user_type' does not exist on type '{ id: string; email: string; name: string | null; createdAt: Date; updatedAt: Date; }'.
+src/services/auth.service.ts(50,49): error TS2339: Property 'sub_type' does not exist on type '{ id: string; email: string; name: string | null; createdAt: Date; updatedAt: Date; }'.
+src/services/auth.service.ts(50,75): error TS2339: Property 'is_active' does not exist on type '{ id: string; email: string; name: string | null; createdAt: Date; updatedAt: Date; }'.
+src/services/auth.service.ts(65,56): error TS2353: Object literal may only specify known properties, and 'google_id' does not exist in type 'UserWhereUniqueInput'.
+src/services/auth.service.ts(71,11): error TS2353: Object literal may only specify known properties, and 'full_name' does not exist in type '(Without<UserCreateInput, UserUncheckedCreateInput> & UserUncheckedCreateInput) | (Without<...> & UserCreateInput)'.
+src/services/auth.service.ts(80,55): error TS2339: Property 'full_name' does not exist on type '{ id: string; email: string; name: string | null; createdAt: Date; updatedAt: Date; }'.
+src/services/auth.service.ts(81,23): error TS2339: Property 'user_type' does not exist on type '{ id: string; email: string; name: string | null; createdAt: Date; updatedAt: Date; }'.
+src/services/auth.service.ts(81,49): error TS2339: Property 'sub_type' does not exist on type '{ id: string; email: string; name: string | null; createdAt: Date; updatedAt: Date; }'.
+src/services/auth.service.ts(81,75): error TS2339: Property 'is_active' does not exist on type '{ id: string; email: string; name: string | null; createdAt: Date; updatedAt: Date; }'.
+src/services/auth.service.ts(114,15): error TS2353: Object literal may only specify known properties, and 'password_hash' does not exist in type '(Without<UserUpdateInput, UserUncheckedUpdateInput> & UserUncheckedUpdateInput) | (Without<...> & UserUpdateInput)'.
+src/services/user.service.ts(3,10): error TS2305: Module '"@prisma/client"' has no exported member 'SubType'.
+src/services/user.service.ts(12,9): error TS2353: Object literal may only specify known properties, and 'full_name' does not exist in type 'UserSelect<DefaultArgs>'.
+src/services/user.service.ts(29,9): error TS2353: Object literal may only specify known properties, and 'full_name' does not exist in type 'UserSelect<DefaultArgs>'.
+src/services/user.service.ts(40,15): error TS2353: Object literal may only specify known properties, and 'sub_type' does not exist in type '(Without<UserUpdateInput, UserUncheckedUpdateInput> & UserUncheckedUpdateInput) | (Without<...> & UserUpdateInput)'.
+src/services/user.service.ts(51,15): error TS2353: Object literal may only specify known properties, and 'fcm_token' does not exist in type '(Without<UserUpdateInput, UserUncheckedUpdateInput> & UserUncheckedUpdateInput) | (Without<...> & UserUpdateInput)'.

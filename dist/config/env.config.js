@@ -12,6 +12,7 @@ const envSchema = zod_1.z.object({
     PORT: zod_1.z.string().default('5000').transform((val) => parseInt(val, 10)),
     DATABASE_URL: zod_1.z.string().url().describe('Database connection URL'),
     JWT_SECRET: zod_1.z.string().min(10).describe('JWT Secret Key for Authentication'),
+    ALLOWED_ORIGINS: zod_1.z.string().default('*').describe('Comma separated list of allowed cors origins'),
 });
 const _env = envSchema.safeParse(process.env);
 if (!_env.success) {
