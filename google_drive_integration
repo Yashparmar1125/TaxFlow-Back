@@ -1,0 +1,63 @@
+# Google Drive API Integration for Secure Document Sharing
+
+This plan outlines the integration of Google Drive API to facilitate secure document sharing between Individual users and their respective CAs. The SaaS application acting as a mediator will not store any sensitive document data on its own servers.
+
+## User Review Required
+
+> [!IMPORTANT]
+> This approach requires Individual users to "Connect Google Drive" and grant the `https://www.googleapis.com/auth/drive.file` scope. This allows the application to create files and manage permissions for files it has created.
+
+> [!WARNING]
+> We assume the "CA" has a Google-associated email address to receive access to the shared files.
+
+## Proposed Changes
+
+### Database Schema (Prisma)
+- Update `User` model to include:
+    - `user_type`: Add `ca` to the `UserType` enum.
+    - `ca_id`: A self-relation or field to link an Individual to a CA.
+    - `google_refresh_token`: Encrypted string to store the user's offline access token.
+    - `google_drive_folder_id`: ID of the "Compliance Docs" folder created in the user's drive.
+
+---
+
+### Backend Components
+
+#### [NEW] [google.service.ts](file:///c:/Users/Yash/Desktop/AGCL/CompailanceOS/backend/src/services/google.service.ts)
+- Implement `getAuthUrl()`: Generates the Google OAuth2 consent URL.
+- Implement `exchangeCodeForTokens(code)`: Exchanges the authorization code for access/refresh tokens.
+- Implement `createDriveFolder(userId)`: Creates a dedicated folder in the user's Drive for the application.
+- Implement `uploadFileToDrive(userId, fileStream)`: Streams the file directly from the request to Google Drive using the user's tokens.
+- Implement `shareFileWithCA(fileId, caEmail)`: Adds a `reader` permission to the file for the CA's email.
+
+#### [NEW] [document.controller.ts](file:///c:/Users/Yash/Desktop/AGCL/CompailanceOS/backend/src/controllers/document.controller.ts)
+- `uploadDocument`: Endpoint that accepts `multipart/form-data`, validates user session, and calls `googleService.uploadFileToDrive`.
+- `listDocuments`: Endpoint to list files in the user's managed Drive folder.
+
+#### [MODIFY] [auth.controller.ts](file:///c:/Users/Yash/Desktop/AGCL/CompailanceOS/backend/src/controllers/auth.controller.ts)
+- Add callbacks for Google OAuth2 redirect.
+
+---
+
+### Frontend Components
+
+- **Google Drive Connection**: A settings panel for users to link their Google account.
+- **Secure Upload Component**: Handles file selection and sends the file to the backend `uploadDocument` endpoint.
+- **CA Dashboard**: A view for CAs to see list of shared documents from their clients, with links to open them directly in Google Drive.
+
+## Verification Plan
+
+### Automated Tests
+- Mock Google Drive API calls to verify:
+    - Correct folder creation logic.
+    - Stream handling (ensuring no disk persistence).
+    - Permission creation for the CA email.
+
+### Manual Verification
+1. **User Connection**: Authenticate with a Google account and verify the refresh token is encrypted and saved in the DB.
+2. **File Upload**: Upload a PDF/Image through the application.
+    - Verify the file appears in the Individual's Google Drive.
+    - Verify the file is NOT present in the SaaS local `uploads/` folder after processing.
+3. **Sharing**:
+    - Verify the "CA" (secondary Google account) receives an email notification or can see the file in "Shared with me".
+    - Verify the CA has read-only access.
