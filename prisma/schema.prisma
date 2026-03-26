@@ -7,30 +7,65 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserType {
-  individual
+enum Role {
+  CA
+  CLIENT
 }
 
-enum SubType {
-  salaried
-  freelancer
-  professional
+enum TaskType {
+  ITR
+  GST_RETURN
+  AUDIT
+  ADVANCE_TAX
+  OTHER
+}
+
+enum TaskStatus {
+  pending
+  in_review
+  approved
+  overdue
+}
+
+enum DocStatus {
+  pending_review
+  approved
+  rejected
+}
+
+enum NotificationType {
+  TASK_CREATED
+  DOC_UPLOADED
+  DOC_APPROVED
+  DOC_REJECTED
+  MESSAGE_RECEIVED
+  DEADLINE_REMINDER
 }
 
 model User {
   id            String   @id @default(uuid()) @db.Uuid
   email         String   @unique @db.VarChar(255)
-  password_hash String?  @db.VarChar(255) // Nullable for Google OAuth
+  password_hash String?  @db.VarChar(255)
   full_name     String   @db.VarChar(100)
-  pan_masked    String?  @db.VarChar(20)
-  user_type     UserType @default(individual)
-  sub_type      SubType
+  role          Role     @default(CLIENT)
+  firmId        String?  @db.Uuid
+  caId          String?  @db.Uuid
   fcm_token     String?  @db.Text
-  google_id     String?  @unique @db.VarChar(100)
+  googleId           String?  @unique @db.VarChar(255)
+  googleEmail        String?  @db.VarChar(255)
+  googleAccessToken  String?  @db.Text
+  googleRefreshToken String?  @db.Text
   is_active     Boolean  @default(true)
   created_at    DateTime @default(now()) @db.Timestamptz
   updated_at    DateTime @updatedAt @db.Timestamptz
-  refreshTokens RefreshToken[]
+
+  refreshTokens  RefreshToken[]
+  clientProfile  ClientProfile? @relation("UserToProfile")
+  managedClients ClientProfile[] @relation("CAToProfile")
+  tasksAsCA      ComplianceTask[] @relation("CAToTask")
+  notifications  Notification[]
+  messagesSent   Message[]
+  threadsAsCA    MessageThread[] @relation("CAInThread")
 
   @@map("users")
 }
@@ -44,4 +79,138 @@ model RefreshToken {
   createdAt DateTime @default(now()) @db.Timestamptz
 
   @@map("refresh_tokens")
+}
+
+model ClientProfile {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @unique @db.Uuid
+  caId         String   @db.Uuid
+  name         String   @db.VarChar(100)
+  pan          String   @db.VarChar(10)
+  phone        String?  @db.VarChar(20)
+  address      String?  @db.Text
+  riskLevel    String?  @db.VarChar(20)
+  driveFolder  String   @db.VarChar(255)
+  createdAt    DateTime @default(now()) @db.Timestamptz
+
+  user         User     @relation("UserToProfile", fields: [userId], references: [id])
+  ca           User     @relation("CAToProfile", fields: [caId], references: [id])
+  tasks        ComplianceTask[]
+  documents    Document[]
+  threads      MessageThread[]
+
+  @@unique([caId, pan])
+  @@map("client_profiles")
+}
+
+model ComplianceTask {
+  id                String     @id @default(uuid()) @db.Uuid
+  caId              String     @db.Uuid
+  clientId          String     @db.Uuid
+  ruleId            String?    @db.Uuid
+  fy                String     @db.VarChar(7)
+  title             String     @db.VarChar(200)
+  taskType          TaskType
+  status            TaskStatus @default(pending)
+  dueDate           DateTime   @db.Timestamptz
+  description       String?    @db.Text
+  documentChecklist String[]   @default([])
+  createdAt         DateTime   @default(now()) @db.Timestamptz
+  updatedAt         DateTime   @updatedAt @db.Timestamptz
+
+  ca               User           @relation("CAToTask", fields: [caId], references: [id])
+  client           ClientProfile  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  rule             ComplianceRule? @relation(fields: [ruleId], references: [id])
+  documents        Document[]
+
+  @@map("compliance_tasks")
+}
+
+model ComplianceRule {
+  id                String    @id @default(uuid()) @db.Uuid
+  caId              String    @db.Uuid
+  title             String    @db.VarChar(200)
+  taskType          TaskType
+  dueDaysFromFYEnd  Int
+  documentChecklist String[]  @default([])
+  isActive          Boolean   @default(true)
+  createdAt         DateTime  @default(now()) @db.Timestamptz
+
+  tasks             ComplianceTask[]
+
+  @@map("compliance_rules")
+}
+
+model Document {
+  id                String    @id @default(uuid()) @db.Uuid
+  taskId            String    @db.Uuid
+  clientId          String    @db.Uuid
+  caId              String    @db.Uuid
+  driveFileId       String    @unique @db.VarChar(255)
+  fileName          String    @db.VarChar(255)
+  documentType      String    @db.VarChar(100)
+  mimeType          String    @db.VarChar(100)
+  sizeBytes         Int
+  status            DocStatus @default(pending_review)
+  rejectionReason   String?   @db.Text
+  version           Int       @default(1)
+  previousVersionId String?   @db.Uuid
+  uploadedAt        DateTime  @default(now()) @db.Timestamptz
+  reviewedAt        DateTime? @db.Timestamptz
+  reviewedBy        String?   @db.Uuid
+
+  task              ComplianceTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  client            ClientProfile  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  @@map("documents")
+}
+
+model MessageThread {
+  id                 String   @id @default(uuid()) @db.Uuid
+  caId               String   @db.Uuid
+  clientId           String   @db.Uuid
+  lastMessageAt      DateTime @default(now()) @db.Timestamptz
+  lastMessagePreview String?  @db.VarChar(80)
+  unreadCountCA      Int      @default(0)
+  unreadCountClient  Int      @default(0)
+  createdAt          DateTime @default(now()) @db.Timestamptz
+
+  ca                 User          @relation("CAInThread", fields: [caId], references: [id])
+  client             ClientProfile @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  messages           Message[]
+
+  @@unique([caId, clientId])
+  @@map("message_threads")
+}
+
+model Message {
+  id              String   @id @default(uuid()) @db.Uuid
+  threadId        String   @db.Uuid
+  senderId        String   @db.Uuid
+  senderRole      Role
+  content         String   @db.Text
+  attachmentDocId String?  @db.Uuid
+  readAt          DateTime? @db.Timestamptz
+  createdAt       DateTime @default(now()) @db.Timestamptz
+
+  thread          MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender          User          @relation(fields: [senderId], references: [id])
+
+  @@map("messages")
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  type      NotificationType
+  title     String           @db.VarChar(100)
+  body      String           @db.VarChar(200)
+  refId     String?          @db.Uuid
+  refType   String?          @db.VarChar(20)
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now()) @db.Timestamptz
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
 }
