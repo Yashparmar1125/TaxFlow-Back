@@ -1,7 +1,8 @@
 import prisma from '../config/prisma';
 import { hashPassword, comparePassword } from '../utils/password';
-import { generateToken } from '../utils/jwt';
+import { generateToken, verifyToken } from '../utils/jwt';
 import { ApiError } from '../utils/ApiError';
+import { Role } from '@prisma/client';
 
 const storeRefreshToken = async (userId: string, token: string) => {
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
@@ -28,22 +29,31 @@ export const authService = {
         email: data.email,
         password_hash: hashedPassword,
         full_name: data.full_name,
-        user_type: 'individual',
-        sub_type: 'salaried',
+        role: data.role || Role.CLIENT,
+        firmId: data.firmId,
+        caId: data.caId,
       },
-      select: { id: true, email: true, full_name: true, user_type: true, sub_type: true, is_active: true }
+      select: { id: true, email: true, full_name: true, role: true, firmId: true, caId: true, is_active: true }
     });
 
-    const access_token = generateToken(user.id, 'access');
-    const refresh_token = generateToken(user.id, 'refresh');
+    const accessToken = generateToken(user.id, 'access', user.role, user.firmId);
+    const refreshToken = generateToken(user.id, 'refresh', user.role, user.firmId);
     
-    await storeRefreshToken(user.id, refresh_token);
+    await storeRefreshToken(user.id, refreshToken);
 
-    return { user, access_token, refresh_token };
+    return { user, accessToken, refreshToken };
   },
 
   async login(data: any) {
-    const user = await prisma.user.findUnique({ where: { email: data.email } });
+    const user = await prisma.user.findUnique({ 
+      where: { email: data.email },
+      include: {
+        clientProfile: {
+          select: { id: true }
+        }
+      }
+    });
+
     if (!user || !user.password_hash) {
       throw new ApiError(401, 'Invalid email or password');
     }
@@ -58,58 +68,55 @@ export const authService = {
     }
 
     const userPayload = {
-      id: user.id, email: user.email, full_name: user.full_name, 
-      user_type: user.user_type, sub_type: user.sub_type, is_active: user.is_active
+      id: user.id,
+      name: user.full_name,
+      email: user.email,
+      role: user.role,
+      firmId: user.firmId,
+      clientId: user.clientProfile?.id
     };
 
-    const access_token = generateToken(user.id, 'access');
-    const refresh_token = generateToken(user.id, 'refresh');
+    const accessToken = generateToken(user.id, 'access', user.role, user.firmId);
+    const refreshToken = generateToken(user.id, 'refresh', user.role, user.firmId);
 
-    await storeRefreshToken(user.id, refresh_token);
+    await storeRefreshToken(user.id, refreshToken);
 
-    return { user: userPayload, access_token, refresh_token };
+    return { user: userPayload, accessToken, refreshToken };
   },
 
-  async googleAuth(data: any) {
-    const googleId = data.id_token; // MOCK MVP
-    
-    let user = await prisma.user.findUnique({ where: { google_id: googleId } });
-    
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
-          email: `${googleId}@google.mock`,
-          full_name: `Google User`,
-          google_id: googleId,
-          user_type: 'individual',
-          sub_type: 'salaried',
-        }
-      });
+  async refreshToken(token: string) {
+    const decoded = verifyToken(token, 'refresh');
+    if (!decoded) {
+      throw new ApiError(401, 'Invalid or expired refresh token');
     }
 
-    const userPayload = {
-      id: user.id, email: user.email, full_name: user.full_name, 
-      user_type: user.user_type, sub_type: user.sub_type, is_active: user.is_active
-    };
+    const storedToken = await prisma.refreshToken.findUnique({
+      where: { token }
+    });
 
-    const access_token = generateToken(user.id, 'access');
-    const refresh_token = generateToken(user.id, 'refresh');
+    if (!storedToken) {
+      // Possible reuse attack (rotation)
+      // In a real scenario, we might want to invalidate all tokens for this user
+      throw new ApiError(403, 'Token reuse detected');
+    }
 
-    await storeRefreshToken(user.id, refresh_token);
+    // Invalidate old token and issue new ones (Rotation)
+    await prisma.refreshToken.delete({ where: { id: storedToken.id } });
 
-    return { user: userPayload, access_token, refresh_token };
-  },
+    const user = await prisma.user.findUnique({ where: { id: decoded.sub } });
+    if (!user || !user.is_active) {
+      throw new ApiError(403, 'User no longer active');
+    }
 
-  async refreshToken(data: any) {
-    // Controller decodes refresh_token and passes data.userId, but we need to verify DB
-    // To do that better, we should modify controller to pass the actual token string.
-    // However, since we're generating a new access_token, we'll verify it here.
-    const access_token = generateToken(data.userId, 'access');
-    return { access_token };
+    const accessToken = generateToken(user.id, 'access', user.role, user.firmId);
+    const newRefreshToken = generateToken(user.id, 'refresh', user.role, user.firmId);
+
+    await storeRefreshToken(user.id, newRefreshToken);
+
+    return { accessToken, refreshToken: newRefreshToken };
   },
   
   async logout(refreshTokenString: string) {
-    // Invalidate the token by deleting it from DB
     await prisma.refreshToken.deleteMany({
       where: { token: refreshTokenString }
     });
@@ -118,13 +125,15 @@ export const authService = {
 
   async requestPasswordReset(data: any) {
     const user = await prisma.user.findUnique({ where: { email: data.email } });
-    if (!user) return true;
+    if (!user) return true; // Don't leak user existence
+    // Mock sending email
     return true;
   },
   
   async resetPassword(data: any) {
-    const user = await prisma.user.findFirst();
-    if (!user) throw new ApiError(400, "Invalid token");
+    // This would normally verify a reset token
+    const user = await prisma.user.findUnique({ where: { email: data.email } });
+    if (!user) throw new ApiError(404, "User not found");
     
     const password_hash = await hashPassword(data.new_password);
     await prisma.user.update({

@@ -1,6 +1,5 @@
 import prisma from '../config/prisma';
 import { ApiError } from '../utils/ApiError';
-import { SubType } from '@prisma/client';
 
 export const userService = {
   async getProfile(userId: string) {
@@ -10,8 +9,6 @@ export const userService = {
         id: true,
         email: true,
         full_name: true,
-        sub_type: true,
-        pan_masked: true,
       }
     });
 
@@ -27,19 +24,12 @@ export const userService = {
         id: true,
         email: true,
         full_name: true,
-        sub_type: true,
-        pan_masked: true,
       }
     });
     return user;
   },
 
-  async setup(userId: string, data: { sub_type: SubType }) {
-    await prisma.user.update({
-      where: { id: userId },
-      data: { sub_type: data.sub_type }
-    });
-
+  async setup(userId: string) {
     // Generate FY tasks placeholder logic
     const tasksCreatedCount = 5; // Placeholder
     return { tasks_created: tasksCreatedCount };
