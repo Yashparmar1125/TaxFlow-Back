@@ -1,13 +1,27 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from '../services/auth.service';
-import { verifyToken } from '../utils/jwt';
 import { ApiError } from '../utils/ApiError';
+import env from '../config/env.config';
+
+const REFRESH_TOKEN_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: env.NODE_ENV === 'production',
+  sameSite: 'strict' as const,
+  path: '/api/v1/auth', // Matches the specified path in PRD
+  maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+};
 
 export const authController = {
   async register(req: Request, res: Response, next: NextFunction) {
     try {
       const result = await authService.register(req.body);
-      res.status(201).json(result);
+      
+      res.cookie('refreshToken', result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
+      
+      res.status(201).json({
+        user: result.user,
+        accessToken: result.accessToken
+      });
     } catch (error) {
       next(error);
     }
@@ -16,16 +30,13 @@ export const authController = {
   async login(req: Request, res: Response, next: NextFunction) {
     try {
       const result = await authService.login(req.body);
-      res.status(200).json(result);
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  async googleAuth(req: Request, res: Response, next: NextFunction) {
-    try {
-      const result = await authService.googleAuth(req.body);
-      res.status(200).json(result);
+      
+      res.cookie('refreshToken', result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
+      
+      res.status(200).json({
+        user: result.user,
+        accessToken: result.accessToken
+      });
     } catch (error) {
       next(error);
     }
@@ -33,13 +44,18 @@ export const authController = {
 
   async refreshToken(req: Request, res: Response, next: NextFunction) {
     try {
-      const { refresh_token } = req.body;
-      const decoded = verifyToken(refresh_token, 'refresh');
-      if (!decoded) {
-        throw new ApiError(401, 'Invalid or expired refresh token');
+      const token = req.cookies.refreshToken;
+      if (!token) {
+        throw new ApiError(401, 'Refresh token missing');
       }
-      const result = await authService.refreshToken({ userId: decoded.sub });
-      res.status(200).json(result);
+
+      const result = await authService.refreshToken(token);
+      
+      res.cookie('refreshToken', result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
+      
+      res.status(200).json({
+        accessToken: result.accessToken
+      });
     } catch (error) {
       next(error);
     }
@@ -47,10 +63,12 @@ export const authController = {
 
   async logout(req: Request, res: Response, next: NextFunction) {
     try {
-      const { refresh_token } = req.body;
-      if (!refresh_token) throw new ApiError(400, 'refresh_token is required');
+      const token = req.cookies.refreshToken;
+      if (token) {
+        await authService.logout(token);
+      }
       
-      await authService.logout(refresh_token);
+      res.clearCookie('refreshToken', { ...REFRESH_TOKEN_COOKIE_OPTIONS, maxAge: 0 });
       res.status(200).json({ success: true });
     } catch (error) {
       next(error);
@@ -60,7 +78,7 @@ export const authController = {
   async forgotPassword(req: Request, res: Response, next: NextFunction) {
     try {
       await authService.requestPasswordReset(req.body);
-      res.status(200).json({ message: 'Email sent' });
+      res.status(200).json({ message: 'Reset link sent if account exists' });
     } catch (error) {
       next(error);
     }

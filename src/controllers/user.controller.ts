@@ -1,42 +1,73 @@
 import { Request, Response, NextFunction } from 'express';
-import { userService } from '../services/user.service';
+import prisma from '../config/prisma';
+import { ApiError } from '../utils/ApiError';
 
 export const userController = {
-  async getProfile(req: Request, res: Response, next: NextFunction) {
+  async getMe(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.sub; // injected by auth.middleware
-      const profile = await userService.getProfile(userId);
-      res.status(200).json(profile);
+      const userId = req.user?.sub;
+      if (!userId) throw new ApiError(401, 'Unauthorized');
+
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          clientProfile: true
+        }
+      });
+
+      if (!user) throw new ApiError(404, 'User not found');
+
+      res.status(200).json({
+        user: {
+          id: user.id,
+          name: user.full_name,
+          email: user.email,
+          role: user.role,
+          firmId: user.firmId,
+          fcmToken: user.fcm_token,
+          isActive: user.is_active,
+          clientId: user.clientProfile?.id
+        }
+      });
     } catch (error) {
       next(error);
     }
   },
 
-  async updateProfile(req: Request, res: Response, next: NextFunction) {
+  async updateMe(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.sub;
-      const updatedProfile = await userService.updateProfile(userId, req.body);
-      res.status(200).json(updatedProfile);
-    } catch (error) {
-      next(error);
-    }
-  },
+      const userId = req.user?.sub;
+      if (!userId) throw new ApiError(401, 'Unauthorized');
 
-  async setup(req: Request, res: Response, next: NextFunction) {
-    try {
-      const userId = req.user!.sub;
-      const result = await userService.setup(userId, req.body);
-      res.status(200).json(result);
-    } catch (error) {
-      next(error);
-    }
-  },
+      const { name, phone, fcmToken } = req.body;
 
-  async updateFcmToken(req: Request, res: Response, next: NextFunction) {
-    try {
-      const userId = req.user!.sub;
-      const result = await userService.updateFcmToken(userId, req.body.fcm_token);
-      res.status(200).json(result);
+      const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: {
+          full_name: name,
+          fcm_token: fcmToken,
+          ...(req.user?.role === 'CLIENT' && phone ? {
+            clientProfile: {
+              update: { phone }
+            }
+          } : {})
+        },
+        include: {
+          clientProfile: true
+        }
+      });
+
+      res.status(200).json({
+        user: {
+          id: updatedUser.id,
+          name: updatedUser.full_name,
+          email: updatedUser.email,
+          role: updatedUser.role,
+          firmId: updatedUser.firmId,
+          fcmToken: updatedUser.fcm_token,
+          clientId: updatedUser.clientProfile?.id
+        }
+      });
     } catch (error) {
       next(error);
     }
