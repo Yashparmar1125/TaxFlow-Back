@@ -1,8 +1,11 @@
-import app from '@/app';
+import app from './app';
 import env from './config/env.config';
 import { logger } from './utils/logger';
+import { initCronJobs } from './cron';
 
 const PORT = env.PORT || 5000;
+
+initCronJobs();
 
 const server = app.listen(PORT, () => {
   logger.info(`Server is running on port ${PORT}`);
