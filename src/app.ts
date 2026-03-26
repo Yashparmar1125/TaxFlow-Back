@@ -1,14 +1,20 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
 import env from './config/env.config';
 import routes from './routes';
+import swaggerUi from 'swagger-ui-express';
+import swaggerSpec from './config/swagger.config';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware';
 import { helmetConfig } from './config/helmet.config';
 import { authLimiter, globalLimiter } from './config/rateLimit.config';
 import { corsConfig } from './config/cors.config';
 
 const app: Application = express();
+
+// Parse cookies
+app.use(cookieParser());
 
 // Set security HTTP headers
 app.use(helmetConfig);
@@ -29,6 +35,9 @@ app.use(cors(corsConfig));
 if (env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
+
+// Swagger Documentation
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // v1 API routes (Apply authLimiter exclusively to auth routes)
 app.use('/api/v1/auth', authLimiter);
