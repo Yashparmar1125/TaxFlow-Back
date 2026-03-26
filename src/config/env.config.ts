@@ -16,6 +16,7 @@ const envSchema = z.object({
   GOOGLE_REDIRECT_URI: z.string().describe('Google OAuth Redirect URI'),
   GOOGLE_APPLICATION_CREDENTIALS: z.string().optional().describe('Path to service account JSON (for sharing logic)'),
   FIREBASE_SERVICE_ACCOUNT_PATH: z.string().optional().describe('Path to firebase service account JSON'),
+  FIREBASE_DATABASE_URL: z.string().optional().describe('Firebase Realtime Database URL'),
 });
 
 const _env = envSchema.safeParse(process.env);

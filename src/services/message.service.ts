@@ -1,6 +1,7 @@
 import prisma from '../config/prisma';
 import { ApiError } from '../utils/ApiError';
 import { Role } from '@prisma/client';
+import { firebaseService } from './firebase.service';
 
 export class MessageService {
   static async getThreads(userId: string, role: string) {
@@ -45,7 +46,7 @@ export class MessageService {
       if (!profile || thread.clientId !== profile.id) throw new ApiError(403, 'Forbidden');
     }
 
-    return prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       const message = await tx.message.create({
         data: {
           threadId,
@@ -73,5 +74,12 @@ export class MessageService {
 
       return message;
     });
+
+    // Sync to Firebase RTDB for real-time updates (Non-blocking)
+    firebaseService.syncMessage(threadId, result).catch(err => 
+      console.error('Failed to sync to Firebase RTDB:', err)
+    );
+
+    return result;
   }
 }

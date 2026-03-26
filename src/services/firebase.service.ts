@@ -11,6 +11,7 @@ if (!admin.apps.length) {
     if (fs.existsSync(absolutePath)) {
       admin.initializeApp({
         credential: admin.credential.cert(absolutePath),
+        databaseURL: env.FIREBASE_DATABASE_URL
       });
     } else {
       console.warn(`⚠️ Firebase service account file not found at ${absolutePath}. Notifications will not work.`);
@@ -51,6 +52,33 @@ class FirebaseService {
     } catch (error) {
       console.error('Error sending topic notification:', error);
       throw error;
+    }
+  }
+
+  async syncMessage(threadId: string, message: any) {
+    if (!admin.apps.length || !env.FIREBASE_DATABASE_URL) {
+      console.warn('⚠️ Firebase RTDB not initialized. Skipping sync.');
+      return;
+    }
+
+    try {
+      const db = admin.database();
+      const ref = db.ref(`messages/${threadId}/${message.id}`);
+      await ref.set({
+        content: message.content,
+        senderId: message.senderId,
+        senderRole: message.senderRole,
+        createdAt: message.createdAt.toISOString(),
+      });
+      
+      // Also update thread metadata in RTDB
+      const threadRef = db.ref(`threads/${threadId}`);
+      await threadRef.update({
+        lastMessageAt: message.createdAt.toISOString(),
+        lastMessagePreview: message.content.substring(0, 80),
+      });
+    } catch (error) {
+      console.error('Error syncing message to Firebase RTDB:', error);
     }
   }
 }
