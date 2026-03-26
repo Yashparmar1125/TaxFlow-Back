@@ -16,6 +16,11 @@ router.use(authenticate);
  *     responses:
  *       200:
  *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items: { $ref: '#/components/schemas/Notification' }
  */
 router.get('/', notificationController.getNotifications);
 
@@ -29,10 +34,16 @@ router.get('/', notificationController.getNotifications);
  *       - in: path
  *         name: id
  *         required: true
- *         schema: { type: string }
+ *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
  *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
  */
 router.patch('/:id/read', notificationController.markAsRead);
 

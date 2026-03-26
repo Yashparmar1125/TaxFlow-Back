@@ -23,11 +23,23 @@ const router = Router();
  *             type: object
  *             required: [email, password]
  *             properties:
- *               email: { type: string, format: email }
- *               password: { type: string }
+ *               email: { type: string, format: email, example: 'user@example.com' }
+ *               password: { type: string, example: 'password123' }
  *     responses:
  *       200:
  *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 accessToken: { type: string }
+ *                 user: { $ref: '#/components/schemas/User' }
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
  */
 router.post('/login', validateRequest(loginSchema), authController.login);
 
@@ -40,6 +52,12 @@ router.post('/login', validateRequest(loginSchema), authController.login);
  *     responses:
  *       200:
  *         description: Token refreshed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 accessToken: { type: string }
  */
 router.post('/refresh', authController.refreshToken);
 
@@ -52,6 +70,12 @@ router.post('/refresh', authController.refreshToken);
  *     responses:
  *       200:
  *         description: Logout successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: 'boolean', example: true }
  */
 router.post('/logout', authController.logout);
 
@@ -67,8 +91,9 @@ router.post('/logout', authController.logout);
  *         application/json:
  *           schema:
  *             type: object
+ *             required: [email]
  *             properties:
- *               email: { type: string }
+ *               email: { type: string, format: email, example: 'user@example.com' }
  *     responses:
  *       200:
  *         description: Email sent
@@ -87,9 +112,10 @@ router.post('/forgot-password', validateRequest(forgotPasswordSchema), authContr
  *         application/json:
  *           schema:
  *             type: object
+ *             required: [token, password]
  *             properties:
- *               token: { type: string }
- *               password: { type: string }
+ *               token: { type: string, example: 'reset-token-xyz' }
+ *               password: { type: string, example: 'newpassword123' }
  *     responses:
  *       200:
  *         description: Password reset successful

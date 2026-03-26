@@ -18,10 +18,17 @@ router.use(authenticate);
  *         multipart/form-data:
  *           schema:
  *             type: object
+ *             required: [file, taskId, title]
  *             properties:
  *               file: { type: string, format: binary }
- *               taskId: { type: string }
- *               title: { type: string }
+ *               taskId: { type: string, format: uuid, example: 'task-123' }
+ *               title: { type: string, example: 'PAN Card Copy' }
+ *     responses:
+ *       201:
+ *         description: Upload successful
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Document' }
  */
 router.post('/upload', upload.single('file'), documentController.uploadDocument);
 
@@ -35,7 +42,7 @@ router.post('/upload', upload.single('file'), documentController.uploadDocument)
  *       - in: path
  *         name: docId
  *         required: true
- *         schema: { type: string }
+ *         schema: { type: string, format: uuid }
  *     requestBody:
  *       required: true
  *       content:
@@ -45,10 +52,13 @@ router.post('/upload', upload.single('file'), documentController.uploadDocument)
  *             required: [status]
  *             properties:
  *               status: { type: string, enum: [approved, rejected] }
- *               remarks: { type: string }
+ *               remarks: { type: string, example: 'Documents are clear.' }
  *     responses:
  *       200:
  *         description: Status updated
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Document' }
  */
 router.patch('/:docId/status', documentController.updateDocumentStatus);
 

@@ -16,6 +16,18 @@ router.use(authenticate);
  *     responses:
  *       200:
  *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id: { type: string, format: uuid }
+ *                   taskId: { type: string, format: uuid }
+ *                   taskTitle: { type: string }
+ *                   lastMessage: { $ref: '#/components/schemas/Message' }
+ *                   unreadCount: { type: integer }
  */
 router.get('/', messageController.getThreads);
 
@@ -29,7 +41,7 @@ router.get('/', messageController.getThreads);
  *       - in: path
  *         name: taskId
  *         required: true
- *         schema: { type: string }
+ *         schema: { type: string, format: uuid }
  *     requestBody:
  *       required: true
  *       content:
@@ -38,10 +50,13 @@ router.get('/', messageController.getThreads);
  *             type: object
  *             required: [content]
  *             properties:
- *               content: { type: string }
+ *               content: { type: string, example: 'I have uploaded the requested files.' }
  *     responses:
  *       201:
  *         description: Message sent
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Message' }
  */
 router.post('/:taskId', messageController.sendMessage);
 
@@ -55,10 +70,15 @@ router.post('/:taskId', messageController.sendMessage);
  *       - in: path
  *         name: taskId
  *         required: true
- *         schema: { type: string }
+ *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
  *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items: { $ref: '#/components/schemas/Message' }
  */
 router.get('/:taskId', messageController.getMessages);
 
