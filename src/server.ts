@@ -7,7 +7,7 @@ const PORT = env.PORT || 5000;
 
 initCronJobs();
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   logger.info(`Server is running on port ${PORT}`);
   logger.info(`Environment: ${env.NODE_ENV}`);
 });

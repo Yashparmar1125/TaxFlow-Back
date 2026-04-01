@@ -3,10 +3,38 @@ import { authController } from '../controllers/auth.controller';
 import { validateRequest } from '../middlewares/validate.middleware';
 import { 
   loginSchema, 
+  registerSchema,
   forgotPasswordSchema, resetPasswordSchema 
 } from '../validators/auth.validator';
 
 const router = Router();
+
+/**
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     summary: User Registration
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password, full_name, role]
+ *             properties:
+ *               email: { type: string, format: email }
+ *               password: { type: string, minLength: 8 }
+ *               full_name: { type: string }
+ *               role: { type: string, enum: [CA, CLIENT] }
+ *               phone: { type: string }
+ *     responses:
+ *       201:
+ *         description: Created
+ *       400:
+ *         description: Bad Request
+ */
+router.post('/register', validateRequest(registerSchema), authController.register);
 
 // As per PRD 6.1
 /**
@@ -121,5 +149,9 @@ router.post('/forgot-password', validateRequest(forgotPasswordSchema), authContr
  *         description: Password reset successful
  */
 router.post('/reset-password', validateRequest(resetPasswordSchema), authController.resetPassword);
+
+// Invitation routes
+router.post('/verify-invite', authController.verifyInvite);
+router.post('/register-invited', authController.registerByInvite);
 
 export default router;

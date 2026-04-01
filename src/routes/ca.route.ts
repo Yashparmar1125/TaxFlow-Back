@@ -2,12 +2,17 @@ import { Router } from 'express';
 import { caController } from '../controllers/ca.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { authorize } from '../middlewares/role.middleware';
+import { validateRequest } from '../middlewares/validate.middleware';
 import { Role } from '@prisma/client';
+import { onboardingSchema, registerSchema, inviteClientSchema } from '../validators/auth.validator';
 
 const router = Router();
 
 // As per PRD 6.3
 router.use(authenticate);
+
+router.post('/onboarding', authorize(Role.CA), validateRequest(onboardingSchema), caController.onboarding);
+
 router.use(authorize(Role.CA));
 
 /**
@@ -95,7 +100,40 @@ router.get('/clients', caController.getClients);
  *                 user: { $ref: '#/components/schemas/User' }
  *                 profile: { $ref: '#/components/schemas/ClientProfile' }
  */
-router.post('/clients', caController.createClient);
+/**
+ * @swagger
+ * /api/v1/ca/clients:
+ *   post:
+ *     summary: Invite a new client
+ *     tags: [CA]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, name, stakeholderType]
+ *             properties:
+ *               email: { type: string }
+ *               name: { type: string }
+ *               phone: { type: string }
+ *               stakeholderType: { type: string }
+ *     responses:
+ *       201:
+ *         description: Client invited successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   user: { $ref: '#/components/schemas/User' }
+ *                   profile: { $ref: '#/components/schemas/ClientProfile' }
+ */
+router.post('/clients', validateRequest(inviteClientSchema), caController.inviteClient);
 
 /**
  * @swagger
@@ -116,5 +154,7 @@ router.post('/clients', caController.createClient);
  *             schema: { $ref: '#/components/schemas/ClientProfile' }
  */
 router.get('/clients/:clientId', caController.getClientById);
+
+router.get('/profile', caController.getProfile);
 
 export default router;

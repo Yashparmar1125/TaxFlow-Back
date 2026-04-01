@@ -33,6 +33,12 @@ enum DocStatus {
   rejected
 }
 
+enum InvitationStatus {
+  pending
+  accepted
+  expired
+}
+
 enum NotificationType {
   TASK_CREATED
   DOC_UPLOADED
@@ -50,15 +56,23 @@ model User {
   role          Role     @default(CLIENT)
   firmId        String?  @db.Uuid
   caId          String?  @db.Uuid
+  phone         String?  @db.VarChar(20)
+  membership_id String?  @unique @db.VarChar(50)
+  experience_years Int?
+  bio           String?  @db.Text
+  specializations String[] @default([])
+  avatar_url    String?  @db.VarChar(255)
   fcm_token     String?  @db.Text
   googleId           String?  @unique @db.VarChar(255)
   googleEmail        String?  @db.VarChar(255)
   googleAccessToken  String?  @db.Text
   googleRefreshToken String?  @db.Text
   is_active     Boolean  @default(true)
+  is_onboarded  Boolean  @default(false)
   created_at    DateTime @default(now()) @db.Timestamptz
   updated_at    DateTime @updatedAt @db.Timestamptz
 
+  firm           Firm?          @relation(fields: [firmId], references: [id])
   refreshTokens  RefreshToken[]
   clientProfile  ClientProfile? @relation("UserToProfile")
   managedClients ClientProfile[] @relation("CAToProfile")
@@ -66,8 +80,25 @@ model User {
   notifications  Notification[]
   messagesSent   Message[]
   threadsAsCA    MessageThread[] @relation("CAInThread")
+  invitations    Invitation[]    @relation("CAInvites")
 
   @@map("users")
+}
+
+model Firm {
+  id               String   @id @default(uuid()) @db.Uuid
+  name             String   @db.VarChar(100)
+  address          String?  @db.Text
+  registration_number String? @db.VarChar(50)
+  phone            String?  @db.VarChar(20)
+  email            String?  @db.VarChar(255)
+  createdAt        DateTime @default(now()) @db.Timestamptz
+  updatedAt        DateTime @updatedAt @db.Timestamptz
+
+  members          User[]
+  clients          ClientProfile[]
+
+  @@map("firms")
 }
 
 model RefreshToken {
@@ -84,17 +115,29 @@ model RefreshToken {
 model ClientProfile {
   id           String   @id @default(uuid()) @db.Uuid
   userId       String   @unique @db.Uuid
-  caId         String   @db.Uuid
+  caId         String?  @db.Uuid
+  firmId       String?  @db.Uuid
   name         String   @db.VarChar(100)
-  pan          String   @db.VarChar(10)
+  pan          String?  @db.VarChar(10)
   phone        String?  @db.VarChar(20)
   address      String?  @db.Text
+  
+  // Adaptive Fields
+  stakeholderType String? @db.VarChar(50)
+  businessName    String? @db.VarChar(100)
+  companyName     String? @db.VarChar(100)
+  gstin           String? @db.VarChar(15)
+  specialization  String? @db.VarChar(100)
+  investmentFocus String? @db.VarChar(100)
+  personalization Json?   @default("{}")
+
   riskLevel    String?  @db.VarChar(20)
-  driveFolder  String   @db.VarChar(255)
+  driveFolder  String?  @db.VarChar(255)
   createdAt    DateTime @default(now()) @db.Timestamptz
 
   user         User     @relation("UserToProfile", fields: [userId], references: [id])
-  ca           User     @relation("CAToProfile", fields: [caId], references: [id])
+  ca           User?    @relation("CAToProfile", fields: [caId], references: [id])
+  firm         Firm?    @relation(fields: [firmId], references: [id])
   tasks        ComplianceTask[]
   documents    Document[]
   threads      MessageThread[]
@@ -213,4 +256,22 @@ model Notification {
   user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
+}
+
+model Invitation {
+  id              String           @id @default(uuid()) @db.Uuid
+  code            String           @unique @db.VarChar(10)
+  email           String           @db.VarChar(255)
+  phone           String?          @db.VarChar(20)
+  name            String           @db.VarChar(100)
+  stakeholderType String?          @db.VarChar(50)
+  caId            String           @db.Uuid
+  status          InvitationStatus @default(pending)
+  expiresAt       DateTime         @db.Timestamptz
+  createdAt       DateTime         @default(now()) @db.Timestamptz
+  updatedAt       DateTime         @updatedAt @db.Timestamptz
+
+  ca              User             @relation("CAInvites", fields: [caId], references: [id])
+
+  @@map("invitations")
 }

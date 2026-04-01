@@ -26,7 +26,7 @@ export class DocumentService {
         file.path,
         file.originalname,
         file.mimetype,
-        task.client.driveFolder
+        task.client.driveFolder!
       );
 
       // 2. Create Document record
@@ -52,17 +52,34 @@ export class DocumentService {
         });
       }
 
-      return document;
+      return this.formatDocument(document);
     } finally {
       // Cleanup local file
       if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
     }
   }
 
+  static formatDocument(doc: any) {
+    if (!doc) return null;
+    return {
+      ...doc,
+      viewLink: `https://drive.google.com/file/d/${doc.driveFileId}/view`
+    };
+  }
+
   static async updateStatus(docId: string, status: any, rejectionReason?: string) {
-    return prisma.document.update({
+    const document = await prisma.document.update({
       where: { id: docId },
       data: { status, rejectionReason }
     });
+    return this.formatDocument(document);
+  }
+
+  static async updateMetadata(docId: string, data: { fileName?: string; documentType?: string }) {
+    const document = await prisma.document.update({
+      where: { id: docId },
+      data
+    });
+    return this.formatDocument(document);
   }
 }

@@ -14,7 +14,7 @@ export const documentController = {
       if (!userId) throw new ApiError(401, 'Unauthorized');
 
       const document = await DocumentService.uploadDocument(userId, req.body.taskId as string, file, req.body.title as string);
-      res.status(201).json({ document });
+      res.status(201).json({ success: true, data: document });
     } catch (error) {
       if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
       next(error);
@@ -26,7 +26,17 @@ export const documentController = {
       const { docId } = req.params;
       const { status, remarks } = req.body;
       const document = await DocumentService.updateStatus(req.params.docId as string, status, remarks);
-      res.status(200).json({ document });
+      res.status(200).json({ success: true, data: document });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async updateMetadata(req: Request, res: Response, next: NextFunction) {
+    try {
+      const docId = req.params.docId as string;
+      const document = await DocumentService.updateMetadata(docId, req.body);
+      res.status(200).json({ success: true, data: document });
     } catch (error) {
       next(error);
     }

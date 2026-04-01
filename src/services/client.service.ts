@@ -1,0 +1,126 @@
+import prisma from '../config/prisma';
+import { ApiError } from '../utils/ApiError';
+import { TaskService } from './task.service';
+
+export class ClientService {
+  /**
+   * Links a user to a CA using an invitation code. Supports session-based (userId) 
+   * or identity-based (email/phone) linking for public endpoints.
+   */
+  static async claimInvite(identifier: { userId?: string, email?: string, phone?: string | null }, code: string) {
+    const invitation = await prisma.invitation.findUnique({
+      where: { code },
+    });
+
+    if (!invitation) throw new ApiError(404, 'Invalid invite code');
+    if (invitation.status !== 'pending') throw new ApiError(400, 'Invite already used');
+    if (invitation.expiresAt < new Date()) throw new ApiError(400, 'Invite expired');
+
+    // Verification: If the invite was specifically issued to an email/phone, 
+    // the claimant MUST provide matching details if they are not the already sessioned user.
+    if (identifier.email && invitation.email.toLowerCase() !== identifier.email.toLowerCase()) {
+       throw new ApiError(403, 'This code was issued to a different email address');
+    }
+
+    let targetUserId = identifier.userId;
+
+    // Resolve userId via email if session is missing
+    if (!targetUserId && identifier.email) {
+      const user = await prisma.user.findUnique({ where: { email: identifier.email.toLowerCase() } });
+      if (!user) throw new ApiError(404, 'No user found with this email. Please register first.');
+      targetUserId = user.id;
+    }
+
+    if (!targetUserId) throw new ApiError(400, 'User identification required to claim invite');
+
+    return prisma.$transaction(async (tx) => {
+      // 1. Link User to CA
+      await tx.user.update({
+        where: { id: targetUserId },
+        data: { caId: invitation.caId }
+      });
+
+      // 2. Mark Invitation as Accepted
+      await tx.invitation.update({
+        where: { id: invitation.id },
+        data: { status: 'accepted' }
+      });
+
+      return { success: true, caId: invitation.caId };
+    });
+  }
+
+  /**
+   * Completes the user profile and marks them as onboarded.
+   */
+  static async completeOnboarding(userId: string, data: any) {
+    const { 
+      name, 
+      pan, 
+      phone, 
+      address, 
+      stakeholderType, 
+      businessName, 
+      companyName, 
+      gstin, 
+      specialization, 
+      investmentFocus,
+      riskLevel,
+      personalization 
+    } = data;
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new ApiError(404, 'User not found');
+
+    return prisma.$transaction(async (tx) => {
+      // 1. Create or Update Client Profile
+      const profile = await tx.clientProfile.upsert({
+        where: { userId },
+        update: {
+          name,
+          pan,
+          phone,
+          address,
+          stakeholderType,
+          businessName,
+          companyName,
+          gstin,
+          specialization,
+          investmentFocus,
+          personalization,
+          driveFolder: `client_${userId}`,
+          caId: (user.caId as any) || null,
+        },
+        create: {
+          userId,
+          caId: (user.caId as any) || null,
+          name,
+          pan,
+          phone,
+          address,
+          stakeholderType,
+          businessName,
+          companyName,
+          gstin,
+          specialization,
+          investmentFocus,
+          personalization,
+          driveFolder: `client_${userId}`,
+        }
+      });
+
+      // 2. Mark as onboarded
+      await tx.user.update({
+        where: { id: userId },
+        data: { is_onboarded: true } as any // Force cast if Prisma type generation is delayed in IDE
+      });
+
+      // 3. Trigger Compliance Task Auto-generation
+      if (user.caId) {
+        await TaskService.initializeForClient(profile.id, stakeholderType, user.caId, tx);
+      }
+
+      return profile;
+    });
+  }
+}

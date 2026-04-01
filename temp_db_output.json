@@ -1,0 +1,41 @@
+[
+  {
+    "id": "b96a7d9f-d8be-4c77-ad57-cc5ca8ee516f",
+    "email": "yashparmar11y@gmail.com",
+    "password_hash": "$2b$12$syWSQVl2zsa4arvU2y2OleV5zjntUyMO.NVq28bdbj332786jELIu",
+    "full_name": "Yash Dharmendra Parmar ",
+    "role": "CA",
+    "firmId": "e92cc6bc-d1f6-4a4d-ab6b-ab5f82b39040",
+    "caId": null,
+    "phone": "",
+    "membership_id": "MRN-12345678",
+    "experience_years": 4,
+    "bio": "",
+    "specializations": [
+      "Audit & Assurance",
+      "GST Compliance",
+      "Income Tax",
+      "ROC Filing",
+      "Financial Planning"
+    ],
+    "avatar_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=b96a7d9f-d8be-4c77-ad57-cc5ca8ee516f",
+    "fcm_token": null,
+    "googleId": null,
+    "googleEmail": null,
+    "googleAccessToken": null,
+    "googleRefreshToken": null,
+    "is_active": true,
+    "created_at": "2026-04-01T04:13:44.166Z",
+    "updated_at": "2026-04-01T04:15:37.265Z",
+    "firm": {
+      "id": "e92cc6bc-d1f6-4a4d-ab6b-ab5f82b39040",
+      "name": "Apex Tax Solutions",
+      "address": "B009, Parnakuti CHS, near Crime Branch Office , Wadala., Mumbai, Maharashtra",
+      "registration_number": "FRN-112523",
+      "phone": null,
+      "email": null,
+      "createdAt": "2026-04-01T04:15:37.262Z",
+      "updatedAt": "2026-04-01T04:15:37.262Z"
+    }
+  }
+]

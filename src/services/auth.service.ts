@@ -30,10 +30,12 @@ export const authService = {
         password_hash: hashedPassword,
         full_name: data.full_name,
         role: data.role || Role.CLIENT,
+        phone: data.phone,
         firmId: data.firmId,
         caId: data.caId,
+        is_onboarded: false,
       },
-      select: { id: true, email: true, full_name: true, role: true, firmId: true, caId: true, is_active: true }
+      select: { id: true, email: true, full_name: true, role: true, firmId: true, caId: true, phone: true, is_active: true, is_onboarded: true }
     });
 
     const accessToken = generateToken(user.id, 'access', user.role, user.firmId);
@@ -42,6 +44,77 @@ export const authService = {
     await storeRefreshToken(user.id, refreshToken);
 
     return { user, accessToken, refreshToken };
+  },
+
+  async verifyInvite(code: string, email: string) {
+    const invitation = await prisma.invitation.findUnique({
+      where: { code },
+      include: { ca: { select: { full_name: true, firm: { select: { name: true } } } } }
+    });
+
+    if (!invitation) throw new ApiError(404, 'Invalid invite code');
+    if (invitation.status !== 'pending') throw new ApiError(400, 'Invite already used');
+    if (invitation.expiresAt < new Date()) throw new ApiError(400, 'Invite expired');
+    if (invitation.email.toLowerCase() !== email.toLowerCase()) {
+      throw new ApiError(400, 'This invite was issued to a different email address');
+    }
+
+    return {
+      name: invitation.name,
+      caName: invitation.ca.full_name,
+      firmName: invitation.ca.firm?.name || 'TaxPro Practice',
+      stakeholderType: invitation.stakeholderType,
+    };
+  },
+
+  async registerByInvite(data: any) {
+    const { code, password, email } = data;
+
+    const invitation = await prisma.invitation.findUnique({
+      where: { code },
+    });
+
+    if (!invitation || invitation.status !== 'pending' || invitation.email.toLowerCase() !== email.toLowerCase()) {
+      throw new ApiError(400, 'Invalid or expired invitation');
+    }
+
+    const hashedPassword = await hashPassword(password);
+
+    return prisma.$transaction(async (tx) => {
+      // 1. Create User
+      const user = await tx.user.create({
+        data: {
+          email: invitation.email,
+          password_hash: hashedPassword,
+          full_name: invitation.name,
+          role: Role.CLIENT,
+          caId: invitation.caId,
+          phone: invitation.phone,
+        }
+      });
+
+      // 2. Mark Invitation as Accepted
+      await tx.invitation.update({
+        where: { id: invitation.id },
+        data: { status: 'accepted' }
+      });
+
+      const accessToken = generateToken(user.id, 'access', user.role);
+      const refreshToken = generateToken(user.id, 'refresh', user.role);
+      await storeRefreshToken(user.id, refreshToken);
+
+      return {
+        user: {
+          id: user.id,
+          email: user.email,
+          fullName: user.full_name,
+          role: user.role,
+          isOnboarded: true, // We assume if they registered by invite, they still need onboarding? No, wait.
+        },
+        accessToken,
+        refreshToken,
+      };
+    });
   },
 
   async login(data: any) {
@@ -73,7 +146,8 @@ export const authService = {
       email: user.email,
       role: user.role,
       firmId: user.firmId,
-      clientId: user.clientProfile?.id
+      clientId: user.clientProfile?.id,
+      isOnboarded: user.is_onboarded,
     };
 
     const accessToken = generateToken(user.id, 'access', user.role, user.firmId);

@@ -1,6 +1,7 @@
 import prisma from '../config/prisma';
 import { ApiError } from '../utils/ApiError';
 import { Role, TaskStatus } from '@prisma/client';
+import { hashPassword } from '../utils/password';
 
 export class CAService {
   static async getDashboard(caId: string) {
@@ -48,38 +49,101 @@ export class CAService {
     });
   }
 
-  static async createClient(caId: string, data: any) {
-    const { email, password, name, pan, phone, address } = data;
+  static async inviteClient(caId: string, data: any) {
+    const { email, name, phone, stakeholderType } = data;
 
-    // 1. Check if user exists
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) throw new ApiError(400, 'User already exists');
+    // 1. Check if an active user or invitation already exists
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) throw new ApiError(400, 'User already exists');
 
-    // 2. Create User + Profile in Transaction
-    return prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({
-        data: {
-          email,
-          full_name: name,
-          role: Role.CLIENT,
-          caId
-        }
-      });
-
-      const profile = await tx.clientProfile.create({
-        data: {
-          userId: user.id,
-          caId,
-          name,
-          pan,
-          phone,
-          address,
-          driveFolder: `client_${user.id}` // Default structure, updated when they connect Drive
-        }
-      });
-
-      return { user, profile };
+    const existingInvite = await prisma.invitation.findFirst({
+      where: { email, status: 'pending', expiresAt: { gt: new Date() } }
     });
+    if (existingInvite) return existingInvite;
+
+    // 2. Generate unique alphanumeric code (e.g., TF-X7Y2Z9)
+    const generateCode = () => {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Avoid ambiguous chars
+      let code = 'TF-';
+      for (let i = 0; i < 6; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return code;
+    };
+
+    let inviteCode = generateCode();
+    // Ensure uniqueness (rare collision but safe)
+    let isUnique = false;
+    while (!isUnique) {
+      const collision = await prisma.invitation.findUnique({ where: { code: inviteCode } });
+      if (!collision) isUnique = true;
+      else inviteCode = generateCode();
+    }
+
+    // 3. Create Invitation
+    const invitation = await prisma.invitation.create({
+      data: {
+        code: inviteCode,
+        email,
+        phone,
+        name,
+        stakeholderType,
+        caId,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      }
+    });
+
+    return invitation;
+  }
+
+  static async onboarding(caId: string, data: any) {
+    const { 
+      firm_name, registration_number, firm_phone, firm_email, address, city, state,
+      membership_id, experience_years, bio, specializations, avatar_url 
+    } = data;
+
+    return prisma.$transaction(async (tx: any) => {
+      // 0. Get current CA details for defaults
+      const ca = await tx.user.findUnique({ where: { id: caId } });
+      if (!ca) throw new ApiError(404, 'CA not found');
+
+      // 1. Create or update Firm
+      const firm = await tx.firm.create({
+        data: {
+          name: firm_name,
+          registration_number,
+          phone: firm_phone || ca.phone, // Default to user's phone
+          email: firm_email || ca.email, // Default to user's email
+          address: `${address || ''}, ${city}, ${state}`.trim(),
+        }
+      });
+
+      // 2. Update CA User Profile
+      const user = await tx.user.update({
+        where: { id: caId },
+        data: {
+          firmId: firm.id,
+          membership_id,
+          experience_years,
+          bio,
+          specializations,
+          avatar_url: avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${caId}` // Mock avatar
+        }
+      });
+
+      return { user, firm };
+    });
+  }
+
+  static async getProfile(caId: string) {
+    const user = await (prisma as any).user.findUnique({
+      where: { id: caId },
+      include: { firm: true }
+    });
+
+    if (!user) throw new ApiError(404, 'CA Profile not found');
+
+    return user;
   }
 
   static async getClientById(caId: string, clientId: string) {

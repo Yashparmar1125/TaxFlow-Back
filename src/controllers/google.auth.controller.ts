@@ -9,7 +9,7 @@ export const googleAuthController = {
     if (!userId) throw new ApiError(401, 'Unauthorized');
     
     const url = GoogleAuthService.getAuthUrl(userId);
-    res.status(200).json({ url });
+    res.status(200).json({ success: true, data: { url } });
   },
 
   async handleCallback(req: Request, res: Response, next: NextFunction) {

@@ -8,7 +8,7 @@ export const ruleController = {
       const caId = req.user?.sub;
       if (!caId) throw new ApiError(401, 'Unauthorized');
       const rules = await RuleService.getRules(caId);
-      res.status(200).json({ rules });
+      res.status(200).json({ success: true, data: rules });
     } catch (error) {
       next(error);
     }
@@ -19,7 +19,7 @@ export const ruleController = {
       const caId = req.user?.sub;
       if (!caId) throw new ApiError(401, 'Unauthorized');
       const rule = await RuleService.createRule(caId, req.body);
-      res.status(201).json({ rule });
+      res.status(201).json({ success: true, data: rule });
     } catch (error) {
       next(error);
     }
@@ -30,7 +30,7 @@ export const ruleController = {
       const caId = req.user?.sub;
       if (!caId) throw new ApiError(401, 'Unauthorized');
       const rule = await RuleService.updateRule(caId, req.params.ruleId as string, req.body);
-      res.status(200).json({ rule });
+      res.status(200).json({ success: true, data: rule });
     } catch (error) {
       next(error);
     }
@@ -41,7 +41,7 @@ export const ruleController = {
       const caId = req.user?.sub;
       if (!caId) throw new ApiError(401, 'Unauthorized');
       const result = await RuleService.deleteRule(caId, req.params.ruleId as string);
-      res.status(200).json(result);
+      res.status(200).json({ success: true, data: result });
     } catch (error) {
       next(error);
     }

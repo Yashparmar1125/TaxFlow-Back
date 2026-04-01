@@ -19,8 +19,11 @@ export const authController = {
       res.cookie('refreshToken', result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
       
       res.status(201).json({
-        user: result.user,
-        accessToken: result.accessToken
+        success: true,
+        data: {
+          user: result.user,
+          accessToken: result.accessToken
+        }
       });
     } catch (error) {
       next(error);
@@ -34,8 +37,11 @@ export const authController = {
       res.cookie('refreshToken', result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
       
       res.status(200).json({
-        user: result.user,
-        accessToken: result.accessToken
+        success: true,
+        data: {
+          user: result.user,
+          accessToken: result.accessToken
+        }
       });
     } catch (error) {
       next(error);
@@ -54,7 +60,10 @@ export const authController = {
       res.cookie('refreshToken', result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
       
       res.status(200).json({
-        accessToken: result.accessToken
+        success: true,
+        data: {
+          accessToken: result.accessToken
+        }
       });
     } catch (error) {
       next(error);
@@ -69,7 +78,7 @@ export const authController = {
       }
       
       res.clearCookie('refreshToken', { ...REFRESH_TOKEN_COOKIE_OPTIONS, maxAge: 0 });
-      res.status(200).json({ success: true });
+      res.status(200).json({ success: true, data: { success: true } });
     } catch (error) {
       next(error);
     }
@@ -78,7 +87,7 @@ export const authController = {
   async forgotPassword(req: Request, res: Response, next: NextFunction) {
     try {
       await authService.requestPasswordReset(req.body);
-      res.status(200).json({ message: 'Reset link sent if account exists' });
+      res.status(200).json({ success: true, message: 'Reset link sent if account exists' });
     } catch (error) {
       next(error);
     }
@@ -87,7 +96,35 @@ export const authController = {
   async resetPassword(req: Request, res: Response, next: NextFunction) {
     try {
       await authService.resetPassword(req.body);
-      res.status(200).json({ success: true });
+      res.status(200).json({ success: true, data: { success: true } });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async verifyInvite(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { code, email } = req.body;
+      const result = await authService.verifyInvite(code, email);
+      res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async registerByInvite(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await authService.registerByInvite(req.body);
+      
+      res.cookie('refreshToken', result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
+      
+      res.status(201).json({
+        success: true,
+        data: {
+          user: result.user,
+          accessToken: result.accessToken
+        }
+      });
     } catch (error) {
       next(error);
     }

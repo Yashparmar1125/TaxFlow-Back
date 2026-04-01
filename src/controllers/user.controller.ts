@@ -18,15 +18,18 @@ export const userController = {
       if (!user) throw new ApiError(404, 'User not found');
 
       res.status(200).json({
-        user: {
-          id: user.id,
-          name: user.full_name,
-          email: user.email,
-          role: user.role,
-          firmId: user.firmId,
-          fcmToken: user.fcm_token,
-          isActive: user.is_active,
-          clientId: user.clientProfile?.id
+        success: true,
+        data: {
+          user: {
+            id: user.id,
+            name: user.full_name,
+            email: user.email,
+            role: user.role,
+            firmId: user.firmId,
+            fcmToken: user.fcm_token,
+            isActive: user.is_active,
+            clientId: user.clientProfile?.id
+          }
         }
       });
     } catch (error) {
@@ -58,14 +61,17 @@ export const userController = {
       });
 
       res.status(200).json({
-        user: {
-          id: updatedUser.id,
-          name: updatedUser.full_name,
-          email: updatedUser.email,
-          role: updatedUser.role,
-          firmId: updatedUser.firmId,
-          fcmToken: updatedUser.fcm_token,
-          clientId: updatedUser.clientProfile?.id
+        success: true,
+        data: {
+          user: {
+            id: updatedUser.id,
+            name: updatedUser.full_name,
+            email: updatedUser.email,
+            role: updatedUser.role,
+            firmId: updatedUser.firmId,
+            fcmToken: updatedUser.fcm_token,
+            clientId: updatedUser.clientProfile?.id
+          }
         }
       });
     } catch (error) {

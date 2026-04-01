@@ -34,7 +34,7 @@ router.post('/upload', upload.single('file'), documentController.uploadDocument)
 
 /**
  * @swagger
- * /api/v1/documents/{docId}/status:
+ * /documents/{docId}/status:
  *   patch:
  *     summary: Approve or Reject a document (CA)
  *     tags: [Documents]
@@ -56,10 +56,32 @@ router.post('/upload', upload.single('file'), documentController.uploadDocument)
  *     responses:
  *       200:
  *         description: Status updated
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/Document' }
  */
 router.patch('/:docId/status', documentController.updateDocumentStatus);
+
+/**
+ * @swagger
+ * /documents/{docId}:
+ *   patch:
+ *     summary: Update document metadata (CA)
+ *     tags: [Documents]
+ *     parameters:
+ *       - in: path
+ *         name: docId
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               fileName: { type: string }
+ *               documentType: { type: string }
+ *     responses:
+ *       200:
+ *         description: Metadata updated
+ */
+router.patch('/:docId', documentController.updateMetadata);
 
 export default router;
