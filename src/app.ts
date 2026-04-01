@@ -31,8 +31,8 @@ app.use(express.urlencoded({ extended: true }));
 // Enable CORS
 app.use(cors(corsConfig));
 
-// HTTP request logger middleware
-app.use(morgan(env.NODE_ENV === 'development' ? 'dev' : 'combined'));
+// HTTP request logger middleware (Verbosity enabled for all environments)
+app.use(morgan('dev'));
 
 // Swagger Documentation
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
