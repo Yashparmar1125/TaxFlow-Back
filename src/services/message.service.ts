@@ -35,9 +35,39 @@ export class MessageService {
     });
   }
 
-  static async sendMessage(userId: string, role: Role, threadId: string, content: string) {
-    const thread = await prisma.messageThread.findUnique({ where: { id: threadId } });
-    if (!thread) throw new ApiError(404, 'Thread not found');
+  static async sendMessage(userId: string, role: Role, taskIdOrThreadId: string, content: string) {
+    let threadId = taskIdOrThreadId;
+    let taskId: string | null = null;
+
+    // Try to find thread by ID first
+    let thread = await prisma.messageThread.findUnique({ where: { id: taskIdOrThreadId } });
+
+    if (!thread) {
+       // If not found by ID, treat it as a taskId and find/create the link
+       const task = await prisma.complianceTask.findUnique({ where: { id: taskIdOrThreadId } });
+       if (!task) throw new ApiError(404, 'Task or Thread not found');
+       
+       taskId = task.id;
+       thread = await prisma.messageThread.findFirst({
+         where: {
+           caId: task.caId,
+           clientId: task.clientId,
+           taskId: task.id
+         }
+       });
+
+       if (!thread) {
+         thread = await prisma.messageThread.create({
+           data: {
+             caId: task.caId,
+             clientId: task.clientId,
+             taskId: task.id,
+             lastMessagePreview: content.substring(0, 80)
+           }
+         });
+       }
+       threadId = thread.id;
+    }
 
     // Verify access
     if (role === Role.CA && thread.caId !== userId) throw new ApiError(403, 'Forbidden');

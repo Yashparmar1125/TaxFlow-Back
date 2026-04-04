@@ -140,16 +140,38 @@ export class TaskService {
         ...(filters.status && { status: filters.status }),
         ...(filters.clientId && { clientId: filters.clientId })
       },
-      include: {
-        client: {
-          select: {
-            name: true,
-            businessName: true
-          }
-        }
-      },
       orderBy: { dueDate: 'asc' }
     });
+  }
+
+  static async getCATaskById(caId: string, taskId: string) {
+    const task = await prisma.complianceTask.findFirst({
+      where: { id: taskId, caId },
+      include: {
+        documents: true,
+        client: {
+          select: {
+            id: true,
+            name: true,
+            pan: true,
+            phone: true,
+            businessName: true,
+            stakeholderType: true
+          }
+        },
+        messageThreads: {
+          include: {
+            messages: {
+              orderBy: { createdAt: 'desc' },
+              take: 1
+            }
+          }
+        }
+      }
+    });
+
+    if (!task) throw new ApiError(404, 'Task not found');
+    return task;
   }
 
   private static getCurrentFY(): string {

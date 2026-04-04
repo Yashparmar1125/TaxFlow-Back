@@ -46,5 +46,8 @@ router.get('/', notificationController.getNotifications);
  *                 success: { type: boolean, example: true }
  */
 router.patch('/:id/read', notificationController.markAsRead);
+router.patch('/read-all', notificationController.markAllRead);
+router.delete('/:id', notificationController.deleteNotification);
+router.delete('/', notificationController.clearAllNotifications);
 
 export default router;

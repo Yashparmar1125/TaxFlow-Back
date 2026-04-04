@@ -154,6 +154,8 @@ router.post('/clients', validateRequest(inviteClientSchema), caController.invite
  *             schema: { $ref: '#/components/schemas/ClientProfile' }
  */
 router.get('/clients/:clientId', caController.getClientById);
+router.patch('/clients/:clientId', caController.updateClient);
+router.get('/clients/:clientId/documents', caController.getClientDocuments);
 
 router.get('/profile', caController.getProfile);
 

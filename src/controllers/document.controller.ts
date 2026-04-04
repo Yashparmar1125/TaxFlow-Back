@@ -40,5 +40,14 @@ export const documentController = {
     } catch (error) {
       next(error);
     }
+  },
+
+  async getDocument(req: Request, res: Response, next: NextFunction) {
+    try {
+      const document = await DocumentService.getDocument(req.params.docId as string);
+      res.status(200).json({ success: true, data: document });
+    } catch (error) {
+      next(error);
+    }
   }
 };

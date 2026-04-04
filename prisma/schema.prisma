@@ -165,6 +165,7 @@ model ComplianceTask {
   client           ClientProfile  @relation(fields: [clientId], references: [id], onDelete: Cascade)
   rule             ComplianceRule? @relation(fields: [ruleId], references: [id])
   documents        Document[]
+  messageThreads   MessageThread[]
 
   @@map("compliance_tasks")
 }
@@ -212,17 +213,19 @@ model MessageThread {
   id                 String   @id @default(uuid()) @db.Uuid
   caId               String   @db.Uuid
   clientId           String   @db.Uuid
+  taskId             String?  @db.Uuid
   lastMessageAt      DateTime @default(now()) @db.Timestamptz
   lastMessagePreview String?  @db.VarChar(80)
   unreadCountCA      Int      @default(0)
   unreadCountClient  Int      @default(0)
   createdAt          DateTime @default(now()) @db.Timestamptz
 
-  ca                 User          @relation("CAInThread", fields: [caId], references: [id])
-  client             ClientProfile @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  ca                 User           @relation("CAInThread", fields: [caId], references: [id])
+  client             ClientProfile  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  task               ComplianceTask? @relation(fields: [taskId], references: [id], onDelete: Cascade)
   messages           Message[]
 
-  @@unique([caId, clientId])
+  @@unique([caId, clientId, taskId])
   @@map("message_threads")
 }
 

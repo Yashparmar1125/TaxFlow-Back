@@ -83,5 +83,6 @@ router.patch('/:docId/status', documentController.updateDocumentStatus);
  *         description: Metadata updated
  */
 router.patch('/:docId', documentController.updateMetadata);
+router.get('/:docId', documentController.getDocument);
 
 export default router;

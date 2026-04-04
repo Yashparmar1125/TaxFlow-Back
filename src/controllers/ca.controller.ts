@@ -67,5 +67,28 @@ export const caController = {
     } catch (error) {
       next(error);
     }
+  },
+
+  async getClientDocuments(req: Request, res: Response, next: NextFunction) {
+    try {
+      const caId = req.user?.sub;
+      const { clientId } = req.params;
+      if (!caId) throw new ApiError(401, 'Unauthorized');
+      const documents = await CAService.getClientDocuments(caId as string, clientId as string);
+      res.status(200).json({ success: true, data: documents });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async updateClient(req: Request, res: Response, next: NextFunction) {
+    try {
+      const caId = req.user?.sub;
+      if (!caId) throw new ApiError(401, 'Unauthorized');
+      const client = await CAService.updateClient(caId, req.params.clientId as string, req.body);
+      res.status(200).json({ success: true, data: client });
+    } catch (error) {
+      next(error);
+    }
   }
 };

@@ -82,4 +82,17 @@ export class DocumentService {
     });
     return this.formatDocument(document);
   }
+
+  static async getDocument(docId: string) {
+    const document = await (prisma as any).document.findUnique({
+      where: { id: docId },
+      include: {
+        task: {
+          select: { title: true, fy: true }
+        }
+      }
+    });
+    if (!document) throw new ApiError(404, 'Document not found');
+    return this.formatDocument(document);
+  }
 }

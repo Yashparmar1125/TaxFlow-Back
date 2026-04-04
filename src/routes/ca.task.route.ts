@@ -36,6 +36,7 @@ router.get('/tasks', taskController.getCATasks);
  *     tags: [CA Tasks]
  */
 router.post('/tasks', taskController.createTask);
+router.get('/tasks/:taskId', taskController.getCATaskById);
 
 /**
  * @swagger
@@ -81,5 +82,7 @@ router.get('/rules', ruleController.getRules);
  *     tags: [Rules]
  */
 router.post('/rules', ruleController.createRule);
+router.patch('/rules/:ruleId', ruleController.updateRule);
+router.delete('/rules/:ruleId', ruleController.deleteRule);
 
 export default router;

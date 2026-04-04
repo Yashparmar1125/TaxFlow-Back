@@ -90,5 +90,16 @@ export const taskController = {
     } catch (error) {
       next(error);
     }
+  },
+
+  async getCATaskById(req: Request, res: Response, next: NextFunction) {
+    try {
+      const caId = req.user?.sub;
+      if (!caId) throw new ApiError(401, 'Unauthorized');
+      const task = await TaskService.getCATaskById(caId, req.params.taskId as string);
+      res.status(200).json({ success: true, data: task });
+    } catch (error) {
+      next(error);
+    }
   }
 };

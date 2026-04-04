@@ -147,18 +147,35 @@ export class CAService {
   }
 
   static async getClientById(caId: string, clientId: string) {
-    const client = await prisma.clientProfile.findUnique({
-      where: { id: clientId },
+    const client = await prisma.clientProfile.findFirst({
+      where: { id: clientId, caId },
       include: {
-        tasks: { orderBy: { dueDate: 'asc' } },
-        documents: { orderBy: { uploadedAt: 'desc' }, take: 5 }
+        user: {
+          select: {
+            email: true,
+            full_name: true,
+            phone: true
+          }
+        }
       }
     });
 
-    if (!client || client.caId !== caId) {
-      throw new ApiError(404, 'Client not found');
-    }
-
+    if (!client) throw new ApiError(404, 'Client not found');
     return client;
+  }
+
+  static async updateClient(caId: string, clientId: string, data: any) {
+    return prisma.clientProfile.update({
+      where: { id: clientId, caId },
+      data
+    });
+  }
+
+  static async getClientDocuments(caId: string, clientId: string) {
+    const documents = await prisma.document.findMany({
+      where: { clientId, caId },
+      orderBy: { uploadedAt: 'desc' }
+    });
+    return documents;
   }
 }
