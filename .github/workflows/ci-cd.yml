@@ -2,7 +2,7 @@ name: Backend CI/CD
 
 on:
   push:
-    branches: [ "master", "main" ]
+    branches: [ "master" ]
 
 jobs:
   deploy:
@@ -18,9 +18,9 @@ jobs:
             set -e
             cd ~/backend
 
-            # Synchronize with the latest code
-            git fetch origin master
-            git reset --hard origin/master
+            # Synchronize with the latest code (using main as the active branch)
+            git fetch origin main
+            git reset --hard origin/main
 
             # Build and scale to 3 instances for high availability
             docker compose up -d --build --scale api=3
@@ -29,7 +29,8 @@ jobs:
             docker compose exec -T nginx nginx -s reload
 
             # Verify the API is running correctly
-            docker compose logs api --tail=20
+            docker ps
+            docker compose logs api --tail=50
 
             # Prune old images and builders to keep server clean
             docker system prune -af --volumes

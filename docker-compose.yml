@@ -25,6 +25,7 @@ services:
     build: .
     restart: always
     stop_grace_period: 30s
+    env_file: .env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-complianceos}
       PORT: 4000
