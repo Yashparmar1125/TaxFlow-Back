@@ -215,5 +215,66 @@ export const authService = {
       data: { password_hash }
     });
     return true;
+  },
+
+  async firebaseSync(data: any) {
+    const { firebaseUid, email, fullName, avatarUrl, fcmToken, role } = data;
+
+    // 1. Find or Create User
+    let user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { firebaseUid: firebaseUid },
+          { email: email }
+        ]
+      },
+      include: { clientProfile: { select: { id: true } } }
+    });
+
+    if (!user) {
+      // Register New User
+      user = await prisma.user.create({
+        data: {
+          firebaseUid,
+          email,
+          full_name: fullName || email.split('@')[0],
+          avatar_url: avatarUrl,
+          role: role || Role.CLIENT,
+          fcm_token: fcmToken,
+          is_active: true,
+          is_onboarded: false
+        },
+        include: { clientProfile: { select: { id: true } } }
+      }) as any;
+    } else {
+      // Sync Existing User
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          firebaseUid: user.firebaseUid || firebaseUid,
+          full_name: user.full_name || fullName,
+          avatar_url: user.avatar_url || avatarUrl,
+          fcm_token: fcmToken || user.fcm_token
+        },
+        include: { clientProfile: { select: { id: true } } }
+      }) as any;
+    }
+
+    const userPayload = {
+      id: user!.id,
+      name: user!.full_name,
+      email: user!.email,
+      role: user!.role,
+      firmId: user!.firmId,
+      clientId: user!.clientProfile?.id,
+      isOnboarded: user!.is_onboarded,
+    };
+
+    const accessToken = generateToken(user!.id, 'access', user!.role, user!.firmId);
+    const refreshToken = generateToken(user!.id, 'refresh', user!.role, user!.firmId);
+
+    await storeRefreshToken(user!.id, refreshToken);
+
+    return { user: userPayload, accessToken, refreshToken };
   }
 };

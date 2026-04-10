@@ -128,5 +128,37 @@ export const authController = {
     } catch (error) {
       next(error);
     }
+  },
+
+  async firebaseSync(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { fcmToken, role } = req.body;
+      const firebaseUser = req.user as any;
+
+      if (!firebaseUser) {
+        throw new ApiError(401, 'Firebase user context missing');
+      }
+
+      const result = await authService.firebaseSync({
+        firebaseUid: firebaseUser.sub,
+        email: firebaseUser.email,
+        fullName: firebaseUser.name,
+        avatarUrl: firebaseUser.picture,
+        fcmToken,
+        role
+      });
+
+      res.cookie('refreshToken', result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          user: result.user,
+          accessToken: result.accessToken
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 };

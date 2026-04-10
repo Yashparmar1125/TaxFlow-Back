@@ -63,6 +63,7 @@ model User {
   specializations String[] @default([])
   avatar_url    String?  @db.VarChar(255)
   fcm_token     String?  @db.Text
+  firebaseUid   String?  @unique @db.VarChar(128)
   googleId           String?  @unique @db.VarChar(255)
   googleEmail        String?  @db.VarChar(255)
   googleAccessToken  String?  @db.Text
