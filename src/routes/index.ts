@@ -14,11 +14,11 @@ import { validateRequest as validate } from '../middlewares/validate.middleware'
 import { claimInviteSchema } from '../validators/auth.validator';
 import { authenticate } from '../middlewares/auth.middleware';
 
+import { systemController } from '../controllers/system.controller';
+
 const router = Router();
 
-router.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK', uptime: process.uptime() });
-});
+router.get('/health', systemController.getHealth);
 
 router.use('/auth', authRoutes);
 router.use('/auth', googleAuthRoutes);
