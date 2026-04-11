@@ -19,6 +19,13 @@ import { systemController } from '../controllers/system.controller';
 const router = Router();
 
 router.get('/health', systemController.getHealth);
+router.get('/', (req, res) => {
+  res.json({
+    message: 'Welcome to ComplianceOS API',
+    version: '1.0.0',
+    documentation: '/api-docs'
+  });
+});
 
 router.use('/auth', authRoutes);
 router.use('/auth', googleAuthRoutes);

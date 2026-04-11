@@ -174,7 +174,7 @@ export class TaskService {
     return task;
   }
 
-  private static getCurrentFY(): string {
+  static getCurrentFY(): string {
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth(); // 0-indexed (0 is Jan)
