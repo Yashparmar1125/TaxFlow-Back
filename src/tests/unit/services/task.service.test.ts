@@ -5,6 +5,10 @@ import { TaskType, TaskStatus } from '@prisma/client';
 import { createMockTask } from '../../factories';
 
 describe('TaskService', () => {
+  beforeEach(() => {
+    prismaMock.complianceRule.findMany.mockResolvedValue([]);
+  });
+
   describe('initializeForClient', () => {
     it('should create tasks for Salaried Employee', async () => {
       const clientId = 'c1';
@@ -19,7 +23,7 @@ describe('TaskService', () => {
         expect.objectContaining({
           data: expect.arrayContaining([
             expect.objectContaining({ taskType: TaskType.ITR }),
-            expect.objectContaining({ taskType: TaskType.ADVANCE_TAX })
+            expect.objectContaining({ taskType: TaskType.OTHER })
           ])
         })
       );
