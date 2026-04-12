@@ -218,7 +218,7 @@ export const authService = {
   },
 
   async firebaseSync(data: any) {
-    const { firebaseUid, email, fullName, avatarUrl, fcmToken, role } = data;
+    const { firebaseUid, email, fullName, avatarUrl, fcmToken, role, inviteCode } = data;
 
     // 1. Find or Create User
     let user = await (prisma as any).user.findFirst({
@@ -232,8 +232,30 @@ export const authService = {
     });
 
     if (!user) {
+      let caId: string | null = null;
+      let firmId: string | null = null;
+
+      // Check for invite if present
+      if (inviteCode) {
+        const invite = await prisma.invitation.findFirst({
+          where: { code: inviteCode, email, status: 'pending' },
+          include: { ca: true }
+        });
+
+        if (invite) {
+          caId = invite.caId;
+          firmId = invite.ca.firmId;
+          
+          // Accept the invite
+          await prisma.invitation.update({
+            where: { id: invite.id },
+            data: { status: 'accepted' }
+          });
+        }
+      }
+
       // Register New User
-      user = await (prisma as any).user.create({
+      user = await prisma.user.create({
         data: {
           firebaseUid,
           email,
@@ -241,6 +263,8 @@ export const authService = {
           avatar_url: avatarUrl,
           role: role || Role.CLIENT,
           fcm_token: fcmToken,
+          caId,
+          firmId,
           is_active: true,
           is_onboarded: false
         },
@@ -270,10 +294,10 @@ export const authService = {
       isOnboarded: (user as any).is_onboarded,
     };
 
-    const accessToken = generateToken(user!.id, 'access', user!.role, user!.firmId);
-    const refreshToken = generateToken(user!.id, 'refresh', user!.role, user!.firmId);
+    const accessToken = generateToken((user as any)!.id, 'access', (user as any)!.role, (user as any)!.firmId);
+    const refreshToken = generateToken((user as any)!.id, 'refresh', (user as any)!.role, (user as any)!.firmId);
 
-    await storeRefreshToken(user!.id, refreshToken);
+    await storeRefreshToken((user as any)!.id, refreshToken);
 
     return { user: userPayload, accessToken, refreshToken };
   }

@@ -207,67 +207,86 @@ export class TaskService {
   }
 
   private static getTemplateForStakeholder(type: string, fy: string) {
-    const yearEnd = new Date(new Date().getFullYear(), 2, 31); // March 31st
+    const currentYear = new Date().getFullYear();
     
+    // Default tasks relative to March 31st (FY End)
+    const baseTasks = [
+      {
+        title: `FY Tax Planning & Estimates - ${fy}`,
+        type: TaskType.OTHER,
+        dueDate: new Date(currentYear, 2, 15), // March 15
+        description: 'Finalize tax savings and advance tax estimates.',
+        checklist: ['Investment Proofs', 'Bank Statements']
+      }
+    ];
+
     switch (type) {
       case 'Salaried Employee':
         return [
+          ...baseTasks,
           {
             title: `Income Tax Return (ITR-1) - ${fy}`,
             type: TaskType.ITR,
-            dueDate: new Date(new Date().getFullYear(), 6, 31), // July 31st
-            description: 'Annual Income Tax filing for salaried individuals.',
-            checklist: ['Form 16', 'Interest Certificates', '80C Proofs', 'PAN Card']
+            dueDate: new Date(currentYear, 6, 31), // July 31
+            description: 'Individual income tax return filing.',
+            checklist: ['Form 16', 'Form 26AS', 'Interest Certificates']
+          }
+        ];
+
+      case 'Professional (Doctor/CA/Lawyer)':
+      case 'Freelancer / Self-Employed':
+        return [
+          ...baseTasks,
+          {
+            title: `Income Tax Return (ITR-3/4) - ${fy}`,
+            type: TaskType.ITR,
+            dueDate: new Date(currentYear, 6, 31),
+            description: 'Business/Professional income tax return.',
+            checklist: ['Profit & Loss Statement', 'Balance Sheet', 'Expense Receipts']
           },
           {
-            title: `Advance Tax - Q3 ${fy}`,
-            type: TaskType.ADVANCE_TAX,
-            dueDate: new Date(new Date().getFullYear(), 11, 15), // Dec 15th
-            description: 'Quarterly Advance Tax installment.',
-            checklist: ['Income Statement', 'Investment Proofs']
+            title: `Audit Readiness Check - ${fy}`,
+            type: TaskType.AUDIT,
+            dueDate: new Date(currentYear, 8, 30), // Sept 30
+            description: 'Initial review for audit requirements.',
+            checklist: ['Books of Accounts', 'Vouchers']
           }
         ];
 
       case 'Business Owner / Proprietor':
-      case 'Professional (Doctor/CA/Lawyer)':
-      case 'Freelancer / Self-Employed':
         return [
+          ...baseTasks,
           {
-            title: `ITR Filing (ITR-3/4) - ${fy}`,
-            type: TaskType.ITR,
-            dueDate: new Date(new Date().getFullYear(), 6, 31),
-            description: 'Annual Income Tax filing for Business/Professional income.',
-            checklist: ['Bank Statements', 'P&L Statement', 'Balance Sheet', 'GST Returns Summary']
-          },
-          {
-            title: `Monthly GST Return - M1`,
+            title: `Annual GST Reconciliation - ${fy}`,
             type: TaskType.GST_RETURN,
-            dueDate: addDays(new Date(), 20),
-            description: 'Monthly GSTR-3B and GSTR-1 filing.',
-            checklist: ['Sales Register', 'Purchase Register']
+            dueDate: new Date(currentYear, 11, 31), // Dec 31
+            description: 'Finalize GSTR-9/9C for the previous year.',
+            checklist: ['GSTR-2A vs Purchase Register', 'GSTR-3B Summary']
           },
           {
-            title: `Advance Tax Installment`,
-            type: TaskType.ADVANCE_TAX,
-            dueDate: new Date(new Date().getFullYear(), 5, 15),
-            description: 'First installment of Advance Tax.',
-            checklist: ['Estimated Income Sheet']
+            title: `Statutory Audit - ${fy}`,
+            type: TaskType.AUDIT,
+            dueDate: new Date(currentYear, 8, 30),
+            description: 'Complete mandatory statutory audit.',
+            checklist: ['Bank Reconciliations', 'Fixed Asset Register', 'Stock Summary']
           }
         ];
 
       case 'HNI / Investor':
         return [
+          ...baseTasks,
           {
-            title: `Wealth Tax & ITR - ${fy}`,
-            type: TaskType.ITR,
-            dueDate: new Date(new Date().getFullYear(), 6, 31),
-            description: 'Complex ITR filing with foreign assets/capital gains.',
-            checklist: ['Capital Gains Statement', 'Foreign Asset Details', 'Dividend Income']
+            title: `Capital Gains Report - ${fy}`,
+            type: TaskType.OTHER,
+            dueDate: new Date(currentYear, 4, 31), // May 31
+            description: 'Compute short-term and long-term capital gains.',
+            checklist: ['Trading Statements', 'Property Sale Deed', 'Crypto Transaction Logs']
           }
         ];
 
       default:
         return [
+          ...baseTasks,
           {
             title: `Generic Compliance Review - ${fy}`,
             type: TaskType.OTHER,
