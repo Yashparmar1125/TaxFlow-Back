@@ -45,7 +45,7 @@ describe('TaskService', () => {
       const clientId = 'c1';
       
       prismaMock.clientProfile.findUnique.mockResolvedValue({ id: clientId, userId } as any);
-      prismaMock.complianceTask.groupBy.mockResolvedValue([
+      (prismaMock.complianceTask.groupBy as any).mockResolvedValue([
         { status: TaskStatus.pending, _count: 5 },
         { status: TaskStatus.overdue, _count: 2 }
       ] as any);
