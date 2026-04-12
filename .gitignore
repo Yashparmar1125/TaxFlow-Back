@@ -5,3 +5,4 @@ src/generated/client
 secrets/
 *.txt
 verify-prisma.ts
+coverage/
