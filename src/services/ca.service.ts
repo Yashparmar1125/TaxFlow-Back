@@ -118,7 +118,6 @@ export class CAService {
         }
       });
 
-      // 2. Update CA User Profile
       const user = await tx.user.update({
         where: { id: caId },
         data: {
@@ -127,6 +126,7 @@ export class CAService {
           experience_years,
           bio,
           specializations,
+          is_onboarded: true,
           avatar_url: avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${caId}` // Mock avatar
         }
       });

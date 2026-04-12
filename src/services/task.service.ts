@@ -10,19 +10,38 @@ export class TaskService {
    */
   static async initializeForClient(clientId: string, stakeholderType: string, caId: string, tx: any = prisma) {
     const fy = this.getCurrentFY();
-    const tasks = this.getTemplateForStakeholder(stakeholderType, fy);
+    const templateTasks = this.getTemplateForStakeholder(stakeholderType, fy);
+    
+    // 1. Fetch custom rules defined by CA
+    const customRules = await tx.complianceRule.findMany({
+      where: { caId, isActive: true }
+    });
+
+    // 2. Map custom rules to task objects
+    const currentYear = new Date().getFullYear();
+    const ruleTasks = customRules.map((rule: any) => ({
+      title: rule.title,
+      type: rule.taskType,
+      // Calculate due date based on FY end (usually March 31st)
+      dueDate: new Date(currentYear, 2, 31 + rule.dueDaysFromFYEnd),
+      description: `Custom rule compliance: ${rule.title}`,
+      checklist: rule.documentChecklist,
+    }));
+
+    // 3. Merge and create
+    const allTasks = [...templateTasks, ...ruleTasks];
 
     return tx.complianceTask.createMany({
-      data: tasks.map(task => ({
+      data: allTasks.map(task => ({
         clientId,
         caId,
         fy,
         title: task.title,
         taskType: task.type,
         status: TaskStatus.pending,
-        dueDate: task.dueDate,
-        description: task.description,
-        documentChecklist: task.checklist,
+        dueDate: (task as any).dueDate,
+        description: (task as any).description,
+        documentChecklist: (task as any).checklist,
       }))
     });
   }
@@ -209,8 +228,9 @@ export class TaskService {
           }
         ];
 
-      case 'Business Man':
-      case 'Professional':
+      case 'Business Owner / Proprietor':
+      case 'Professional (Doctor/CA/Lawyer)':
+      case 'Freelancer / Self-Employed':
         return [
           {
             title: `ITR Filing (ITR-3/4) - ${fy}`,
@@ -235,7 +255,7 @@ export class TaskService {
           }
         ];
 
-      case 'HNI':
+      case 'HNI / Investor':
         return [
           {
             title: `Wealth Tax & ITR - ${fy}`,

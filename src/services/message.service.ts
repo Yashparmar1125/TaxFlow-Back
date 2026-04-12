@@ -5,7 +5,16 @@ import { firebaseService } from './firebase.service';
 
 export class MessageService {
   static async getThreads(userId: string, role: string) {
-    const where = role === Role.CA ? { caId: userId } : { clientId: userId };
+    let where: any;
+    
+    if (role === Role.CA) {
+      where = { caId: userId };
+    } else {
+      const profile = await prisma.clientProfile.findUnique({ where: { userId } });
+      if (!profile) return []; // No profile, no threads
+      where = { clientId: profile.id };
+    }
+
     return prisma.messageThread.findMany({
       where,
       include: {

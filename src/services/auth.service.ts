@@ -109,7 +109,7 @@ export const authService = {
           email: user.email,
           fullName: user.full_name,
           role: user.role,
-          isOnboarded: true, // We assume if they registered by invite, they still need onboarding? No, wait.
+          isOnboarded: false, 
         },
         accessToken,
         refreshToken,
@@ -221,7 +221,7 @@ export const authService = {
     const { firebaseUid, email, fullName, avatarUrl, fcmToken, role } = data;
 
     // 1. Find or Create User
-    let user = await prisma.user.findFirst({
+    let user = await (prisma as any).user.findFirst({
       where: {
         OR: [
           { firebaseUid: firebaseUid },
@@ -233,7 +233,7 @@ export const authService = {
 
     if (!user) {
       // Register New User
-      user = await prisma.user.create({
+      user = await (prisma as any).user.create({
         data: {
           firebaseUid,
           email,
@@ -245,29 +245,29 @@ export const authService = {
           is_onboarded: false
         },
         include: { clientProfile: { select: { id: true } } }
-      }) as any;
+      });
     } else {
       // Sync Existing User
-      user = await prisma.user.update({
-        where: { id: user.id },
+      user = await (prisma as any).user.update({
+        where: { id: (user as any).id },
         data: {
-          firebaseUid: user.firebaseUid || firebaseUid,
-          full_name: user.full_name || fullName,
-          avatar_url: user.avatar_url || avatarUrl,
-          fcm_token: fcmToken || user.fcm_token
+          firebaseUid: (user as any).firebaseUid || firebaseUid,
+          full_name: (user as any).full_name || fullName,
+          avatar_url: (user as any).avatar_url || avatarUrl,
+          fcm_token: fcmToken || (user as any).fcm_token
         },
         include: { clientProfile: { select: { id: true } } }
-      }) as any;
+      });
     }
 
     const userPayload = {
-      id: user!.id,
-      name: user!.full_name,
-      email: user!.email,
-      role: user!.role,
-      firmId: user!.firmId,
-      clientId: user!.clientProfile?.id,
-      isOnboarded: user!.is_onboarded,
+      id: (user as any).id,
+      name: (user as any).full_name,
+      email: (user as any).email,
+      role: (user as any).role,
+      firmId: (user as any).firmId,
+      clientId: (user as any).clientProfile?.id,
+      isOnboarded: (user as any).is_onboarded,
     };
 
     const accessToken = generateToken(user!.id, 'access', user!.role, user!.firmId);

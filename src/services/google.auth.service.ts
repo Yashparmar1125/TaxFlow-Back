@@ -10,13 +10,21 @@ const oauth2Client = new google.auth.OAuth2(
 );
 
 export class GoogleAuthService {
+  private static createClient() {
+    return new google.auth.OAuth2(
+      env.GOOGLE_CLIENT_ID,
+      env.GOOGLE_CLIENT_SECRET,
+      env.GOOGLE_REDIRECT_URI
+    );
+  }
+
   static getAuthUrl(userId: string) {
     const scopes = [
       'https://www.googleapis.com/auth/drive.file',
       'https://www.googleapis.com/auth/userinfo.email'
     ];
 
-    return oauth2Client.generateAuthUrl({
+    return this.createClient().generateAuthUrl({
       access_type: 'offline',
       scope: scopes,
       prompt: 'consent',
@@ -25,10 +33,11 @@ export class GoogleAuthService {
   }
 
   static async handleCallback(code: string, userId: string) {
-    const { tokens } = await oauth2Client.getToken(code);
-    oauth2Client.setCredentials(tokens);
+    const client = this.createClient();
+    const { tokens } = await client.getToken(code);
+    client.setCredentials(tokens);
 
-    const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
+    const oauth2 = google.oauth2({ version: 'v2', auth: client });
     const userInfo = await oauth2.userinfo.get();
     const googleEmail = userInfo.data.email;
     const googleId = userInfo.data.id;

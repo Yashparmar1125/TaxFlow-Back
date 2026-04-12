@@ -1,6 +1,8 @@
 import prisma from '../config/prisma';
 import { ApiError } from '../utils/ApiError';
 import { TaskService } from './task.service';
+import { driveService } from './drive.service';
+
 
 export class ClientService {
   /**
@@ -69,8 +71,25 @@ export class ClientService {
       personalization 
     } = data;
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await (prisma as any).user.findUnique({ 
+      where: { id: userId }
+    });
     if (!user) throw new ApiError(404, 'User not found');
+
+    let folderId = `client_${userId}`; // Fallback string
+    
+    // Create actual folder if Google is connected
+    if (user.googleAccessToken && user.caId) {
+       try {
+         const caUser = await (prisma as any).user.findUnique({ where: { id: user.caId }, select: { email: true } });
+         if (caUser?.email) {
+            folderId = await driveService.createFolderForClient(userId, `Compliance - ${name || user.full_name}`, caUser.email);
+         }
+       } catch (e) {
+         console.error('Failed to create Drive folder, falling back to string ID', e);
+       }
+    }
+
 
     return prisma.$transaction(async (tx) => {
       // 1. Create or Update Client Profile
@@ -88,7 +107,7 @@ export class ClientService {
           specialization,
           investmentFocus,
           personalization,
-          driveFolder: `client_${userId}`,
+          driveFolder: folderId,
           caId: (user.caId as any) || null,
         },
         create: {
@@ -105,7 +124,7 @@ export class ClientService {
           specialization,
           investmentFocus,
           personalization,
-          driveFolder: `client_${userId}`,
+          driveFolder: folderId,
         }
       });
 
