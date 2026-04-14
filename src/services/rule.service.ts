@@ -7,12 +7,39 @@ export class RuleService {
   }
 
   static async createRule(caId: string, data: any) {
+    // Map frontend fields to backend schema
+    const mappedData: any = {
+      caId,
+      title: data.taskName || data.title,
+      taskType: data.category === 'gst' ? 'GST_RETURN' : 
+                data.category === 'itr' ? 'ITR' : 
+                data.category === 'audit' ? 'AUDIT' : 'OTHER',
+      isActive: data.isActive !== undefined ? data.isActive : true,
+      
+      // Save full set of frontend fields
+      financialYear: data.financialYear,
+      officialDueDate: data.officialDueDate ? new Date(data.officialDueDate) : null,
+      internalDueDate: data.internalDueDate ? new Date(data.internalDueDate) : null,
+      applicableTypes: data.applicableTypes || [],
+      reminderDays: data.reminderDays || [30, 7, 1],
+      defaultNotes: data.defaultNotes || null,
+      defaultPriority: data.defaultPriority || 'normal',
+    };
+
+    // Calculate dueDaysFromFYEnd if officialDueDate is provided
+    if (data.officialDueDate) {
+      const dueDate = new Date(data.officialDueDate);
+      const fyEndStr = data.financialYear ? data.financialYear.split('-')[0].replace('FY ', '20') : '2025';
+      const fyEndDate = new Date(`${parseInt(fyEndStr) + 1}-03-31`);
+      const diffTime = Math.abs(dueDate.getTime() - fyEndDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      mappedData.dueDaysFromFYEnd = diffDays;
+    } else {
+      mappedData.dueDaysFromFYEnd = data.dueDaysFromFYEnd || 30;
+    }
+
     return prisma.complianceRule.create({
-      data: {
-        ...data,
-        caId,
-        isActive: data.isActive !== undefined ? data.isActive : true
-      }
+      data: mappedData
     });
   }
 

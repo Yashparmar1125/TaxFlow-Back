@@ -22,7 +22,8 @@ export const authController = {
         success: true,
         data: {
           user: result.user,
-          accessToken: result.accessToken
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken
         }
       });
     } catch (error) {
@@ -40,7 +41,8 @@ export const authController = {
         success: true,
         data: {
           user: result.user,
-          accessToken: result.accessToken
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken
         }
       });
     } catch (error) {
@@ -50,7 +52,7 @@ export const authController = {
 
   async refreshToken(req: Request, res: Response, next: NextFunction) {
     try {
-      const token = req.cookies.refreshToken;
+      const token = req.cookies.refreshToken || req.body.refreshToken;
       if (!token) {
         throw new ApiError(401, 'Refresh token missing');
       }
@@ -62,7 +64,8 @@ export const authController = {
       res.status(200).json({
         success: true,
         data: {
-          accessToken: result.accessToken
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken
         }
       });
     } catch (error) {
@@ -122,7 +125,8 @@ export const authController = {
         success: true,
         data: {
           user: result.user,
-          accessToken: result.accessToken
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken
         }
       });
     } catch (error) {
@@ -154,9 +158,18 @@ export const authController = {
         success: true,
         data: {
           user: result.user,
-          accessToken: result.accessToken
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken
         }
       });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async healthCheck(req: Request, res: Response, next: NextFunction) {
+    try {
+      res.status(200).json({ success: true, message: 'Auth service is online' });
     } catch (error) {
       next(error);
     }

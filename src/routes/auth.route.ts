@@ -26,4 +26,7 @@ router.post('/firebase-sync', verifyFirebaseToken, authController.firebaseSync);
 router.post('/verify-invite', authController.verifyInvite);
 router.post('/register-invited', authController.registerByInvite);
 
+// Health check
+router.get('/health-check', authController.healthCheck);
+
 export default router;

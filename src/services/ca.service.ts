@@ -54,7 +54,16 @@ export class CAService {
 
     // 1. Check if an active user or invitation already exists
     const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) throw new ApiError(400, 'User already exists');
+    
+    // If user exists and is a CA, we shouldn't allow them to be invited as a client
+    if (existingUser && existingUser.role === Role.CA) {
+      throw new ApiError(400, 'This email is already registered as a CA');
+    }
+
+    // Check if they are already a client of THIS CA
+    if (existingUser && existingUser.caId === caId) {
+       throw new ApiError(400, 'This user is already your client');
+    }
 
     const existingInvite = await prisma.invitation.findFirst({
       where: { email, status: 'pending', expiresAt: { gt: new Date() } }

@@ -180,6 +180,15 @@ model ComplianceRule {
   documentChecklist String[]  @default([])
   isActive          Boolean   @default(true)
   createdAt         DateTime  @default(now()) @db.Timestamptz
+  
+  // New fields to support custom practice rules from frontend
+  financialYear     String?   @db.VarChar(20)
+  officialDueDate   DateTime? @db.Timestamptz
+  internalDueDate   DateTime? @db.Timestamptz
+  applicableTypes   String[]  @default([])
+  reminderDays      Int[]     @default([30, 7, 1])
+  defaultNotes      String?   @db.Text
+  defaultPriority   String?   @db.VarChar(20)
 
   tasks             ComplianceTask[]
 

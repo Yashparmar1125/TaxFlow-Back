@@ -231,44 +231,48 @@ export const authService = {
       include: { clientProfile: { select: { id: true } } }
     });
 
-    if (!user) {
-      let caId: string | null = null;
-      let firmId: string | null = null;
+    let caId: string | null = null;
+    let firmId: string | null = null;
 
-      // Check for invite if present
-      if (inviteCode) {
-        const invite = await prisma.invitation.findFirst({
-          where: { code: inviteCode, email, status: 'pending' },
-          include: { ca: true }
+    // 0. Pre-process invitation if code is provided
+    if (inviteCode) {
+      const invite = await prisma.invitation.findFirst({
+        where: { code: inviteCode, email, status: 'pending' },
+        include: { ca: true }
+      });
+
+      if (invite) {
+        caId = invite.caId;
+        firmId = invite.ca.firmId;
+        
+        // Mark as accepted
+        await prisma.invitation.update({
+          where: { id: invite.id },
+          data: { status: 'accepted' }
         });
-
-        if (invite) {
-          caId = invite.caId;
-          firmId = invite.ca.firmId;
-          
-          // Accept the invite
-          await prisma.invitation.update({
-            where: { id: invite.id },
-            data: { status: 'accepted' }
-          });
-        }
       }
+    }
 
+    if (!user) {
       // Register New User
       user = await prisma.user.create({
         data: {
           firebaseUid,
           email,
           full_name: fullName || email.split('@')[0],
-          avatar_url: avatarUrl,
-          role: role || Role.CLIENT,
-          fcm_token: fcmToken,
+          role: role as Role,
           caId,
           firmId,
-          is_active: true,
-          is_onboarded: false
-        },
-        include: { clientProfile: { select: { id: true } } }
+          is_onboarded: false,
+        } as any,
+        include: { 
+          clientProfile: { 
+            include: {
+              ca: { select: { full_name: true } },
+              firm: { select: { name: true } }
+            }
+          }
+        }
       });
     } else {
       // Sync Existing User
@@ -278,9 +282,19 @@ export const authService = {
           firebaseUid: (user as any).firebaseUid || firebaseUid,
           full_name: (user as any).full_name || fullName,
           avatar_url: (user as any).avatar_url || avatarUrl,
-          fcm_token: fcmToken || (user as any).fcm_token
+          fcm_token: fcmToken || (user as any).fcm_token,
+          // Update CA only if we have a valid invite
+          caId: caId || (user as any).caId,
+          firmId: firmId || (user as any).firmId,
         },
-        include: { clientProfile: { select: { id: true } } }
+        include: { 
+          clientProfile: { 
+            include: {
+              ca: { select: { full_name: true } },
+              firm: { select: { name: true } }
+            }
+          }
+        }
       });
     }
 
@@ -292,6 +306,8 @@ export const authService = {
       firmId: (user as any).firmId,
       clientId: (user as any).clientProfile?.id,
       isOnboarded: (user as any).is_onboarded,
+      caName: (user as any).clientProfile?.ca?.full_name,
+      firmName: (user as any).clientProfile?.firm?.name,
     };
 
     const accessToken = generateToken((user as any)!.id, 'access', (user as any)!.role, (user as any)!.firmId);
