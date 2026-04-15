@@ -13,6 +13,9 @@ import { corsConfig } from './config/cors.config';
 
 const app: Application = express();
 
+// Trust proxy for Nginx
+app.set('trust proxy', 1);
+
 // Parse cookies
 app.use(cookieParser());
 
