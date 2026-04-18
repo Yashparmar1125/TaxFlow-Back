@@ -10,12 +10,16 @@ export class ClientController {
   async claimInvite(req: Request, res: Response, next: NextFunction) {
     try {
       const { code, email, phone } = req.body;
-      const userId = req.user?.sub;
+      const user = req.user; // sub, email, role should be in here
 
       if (!code) throw new ApiError(400, 'Invite code is required');
       
-      // Pass both session-based and body-based identification to the service
-      const result = await ClientService.claimInvite({ userId, email, phone }, code);
+      // Pass both session-based user info and body-based identification
+      const result = await ClientService.claimInvite({ 
+        userId: user?.sub, 
+        email: email || (user as any)?.email, 
+        phone 
+      }, code);
       
       res.status(200).json({ success: true, message: 'Invite claimed successfully', data: result });
     } catch (error) {

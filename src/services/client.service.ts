@@ -19,9 +19,11 @@ export class ClientService {
     if (invitation.expiresAt < new Date()) throw new ApiError(400, 'Invite expired');
 
     // Verification: If the invite was specifically issued to an email/phone, 
-    // the claimant MUST provide matching details if they are not the already sessioned user.
-    if (identifier.email && invitation.email.toLowerCase() !== identifier.email.toLowerCase()) {
-       throw new ApiError(403, 'This code was issued to a different email address');
+    // the claimant MUST provide matching details or be the user it was issued to.
+    if (identifier.email && 
+        invitation.email && 
+        invitation.email.toLowerCase() !== identifier.email.toLowerCase()) {
+       throw new ApiError(403, `This code was issued to ${invitation.email}. Please use that email to claim.`);
     }
 
     let targetUserId = identifier.userId;
