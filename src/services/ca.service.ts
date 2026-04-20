@@ -60,15 +60,22 @@ export class CAService {
       throw new ApiError(400, 'This email is already registered as a CA');
     }
 
-    // Check if they are already a client of THIS CA
-    if (existingUser && existingUser.caId === caId) {
-       throw new ApiError(400, 'This user is already your client');
+    // Check if an invitation already exists (any status) for this user to this CA
+    // This allows re-retrieving the code if the client is already linked or invited.
+    const recentInvite = await prisma.invitation.findFirst({
+      where: { email, caId },
+      orderBy: { createdAt: 'desc' }
+    });
+    
+    // If there is an active (pending) invite, or they are already linked via an invite
+    if (recentInvite && (recentInvite.status === 'pending' || (existingUser && existingUser.caId === caId))) {
+       return recentInvite;
     }
 
-    const existingInvite = await prisma.invitation.findFirst({
-      where: { email, status: 'pending', expiresAt: { gt: new Date() } }
-    });
-    if (existingInvite) return existingInvite;
+    // If they are linked to another CA, we don't allow re-inviting for now (security/policy)
+    if (existingUser && existingUser.caId && existingUser.caId !== caId) {
+       throw new ApiError(403, 'This user is already linked to another CA or Firm');
+    }
 
     // 2. Generate unique alphanumeric code (e.g., TF-X7Y2Z9)
     const generateCode = () => {
