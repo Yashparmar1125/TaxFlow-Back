@@ -273,6 +273,7 @@ export const authService = {
             }
           }
         }
+      });
     } else {
       // Sync Existing User
       user = await (prisma as any).user.update({
