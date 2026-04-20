@@ -245,6 +245,10 @@ export const authService = {
         caId = invite.caId;
         firmId = invite.ca.firmId;
         
+        // Auto-fill profile details from invite if not provided
+        if (!fullName) fullName = invite.name;
+        const invitationPhone = invite.phone;
+        
         // Mark as accepted
         await prisma.invitation.update({
           where: { id: invite.id },
@@ -261,6 +265,7 @@ export const authService = {
           email,
           full_name: fullName || email.split('@')[0],
           role: role as Role,
+          phone: (user as any)?.phone || invitationPhone,
           caId,
           firmId,
           is_onboarded: false,
@@ -283,6 +288,7 @@ export const authService = {
           full_name: (user as any).full_name || fullName,
           avatar_url: (user as any).avatar_url || avatarUrl,
           fcm_token: fcmToken || (user as any).fcm_token,
+          phone: (user as any).phone || invitationPhone,
           // Update CA only if we have a valid invite
           caId: caId || (user as any).caId,
           firmId: firmId || (user as any).firmId,
@@ -312,6 +318,7 @@ export const authService = {
           caId: (user as any).caId,
           firmId: (user as any).firmId,
           name: (user as any).full_name,
+          stakeholderType: 'Unspecified' // Default until onboarding completes
         }
       });
 
