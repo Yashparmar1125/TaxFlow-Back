@@ -273,7 +273,6 @@ export const authService = {
             }
           }
         }
-      });
     } else {
       // Sync Existing User
       user = await (prisma as any).user.update({
@@ -287,6 +286,37 @@ export const authService = {
           caId: caId || (user as any).caId,
           firmId: firmId || (user as any).firmId,
         },
+        include: { 
+          clientProfile: { 
+            include: {
+              ca: { select: { full_name: true } },
+              firm: { select: { name: true } }
+            }
+          }
+        }
+      });
+    }
+
+    // 2. Ensure ClientProfile exists if user is a client linked to CA/Firm
+    // This makes the client visible to the CA immediately.
+    if ((user as any).role === 'CLIENT' && (user as any).caId) {
+      await prisma.clientProfile.upsert({
+        where: { userId: (user as any).id },
+        update: { 
+          caId: (user as any).caId, 
+          firmId: (user as any).firmId 
+        },
+        create: {
+          userId: (user as any).id,
+          caId: (user as any).caId,
+          firmId: (user as any).firmId,
+          name: (user as any).full_name,
+        }
+      });
+
+      // Refetch to get current profile data for payload
+      user = await (prisma as any).user.findUnique({
+        where: { id: (user as any).id },
         include: { 
           clientProfile: { 
             include: {

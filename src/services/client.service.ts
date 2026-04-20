@@ -15,7 +15,15 @@ export class ClientService {
     });
 
     if (!invitation) throw new ApiError(404, 'Invalid invite code');
-    if (invitation.status !== 'pending') throw new ApiError(400, 'Invite already used');
+
+    // Idempotency check: If invitation is already accepted, check if it's by THIS user
+    if (invitation.status !== 'pending') {
+      const user = await prisma.user.findUnique({ where: { id: targetUserId } });
+      if (user && user.caId === invitation.caId) {
+        return { success: true, caId: invitation.caId, message: 'Already linked' };
+      }
+      throw new ApiError(400, 'Invite already used');
+    }
     if (invitation.expiresAt < new Date()) throw new ApiError(400, 'Invite expired');
 
     // Verification: If the invite was specifically issued to an email/phone, 
