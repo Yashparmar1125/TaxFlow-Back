@@ -11,7 +11,12 @@ export const userController = {
       const user = await prisma.user.findUnique({
         where: { id: userId },
         include: {
-          clientProfile: true
+          clientProfile: {
+            include: {
+              ca: { select: { full_name: true } },
+              firm: { select: { name: true } }
+            }
+          }
         }
       });
 
@@ -26,9 +31,13 @@ export const userController = {
             email: user.email,
             role: user.role,
             firmId: user.firmId,
+            caId: user.caId,
             fcmToken: user.fcm_token,
             isActive: user.is_active,
-            clientId: user.clientProfile?.id
+            isOnboarded: user.is_onboarded,
+            clientId: user.clientProfile?.id,
+            caName: user.clientProfile?.ca?.full_name,
+            firmName: user.clientProfile?.firm?.name
           }
         }
       });
