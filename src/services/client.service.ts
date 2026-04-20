@@ -16,16 +16,6 @@ export class ClientService {
 
     if (!invitation) throw new ApiError(404, 'Invalid invite code');
 
-    // Idempotency check: If invitation is already accepted, check if it's by THIS user
-    if (invitation.status !== 'pending') {
-      const user = await prisma.user.findUnique({ where: { id: targetUserId } });
-      if (user && user.caId === invitation.caId) {
-        return { success: true, caId: invitation.caId, message: 'Already linked' };
-      }
-      throw new ApiError(400, 'Invite already used');
-    }
-    if (invitation.expiresAt < new Date()) throw new ApiError(400, 'Invite expired');
-
     // Verification: If the invite was specifically issued to an email/phone, 
     // the claimant MUST provide matching details or be the user it was issued to.
     if (identifier.email && 
@@ -43,7 +33,20 @@ export class ClientService {
       targetUserId = user.id;
     }
 
-    if (!targetUserId) throw new ApiError(400, 'User identification required to claim invite');
+    // Idempotency check: If invitation is already accepted, check if it's by THIS user
+    if (invitation.status !== 'pending' && targetUserId) {
+      const user = await prisma.user.findUnique({ where: { id: targetUserId } });
+      if (user && user.caId === invitation.caId) {
+        return { success: true, caId: invitation.caId, message: 'Already linked' };
+      }
+      throw new ApiError(400, 'Invite already used');
+    }
+    
+    if (invitation.status !== 'pending' && !targetUserId) {
+        throw new ApiError(400, 'Invite already used');
+    }
+
+    if (invitation.expiresAt < new Date()) throw new ApiError(400, 'Invite expired');
 
     return prisma.$transaction(async (tx) => {
       // 1. Link User to CA
