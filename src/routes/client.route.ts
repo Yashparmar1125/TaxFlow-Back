@@ -10,7 +10,7 @@ const router = Router();
  * @route POST /api/v1/client/claim-invite
  * @desc Link existing user to a CA via invite code
  */
-router.post('/claim-invite', validate(claimInviteSchema), clientController.claimInvite);
+router.post('/claim-invite', authenticate, validate(claimInviteSchema), clientController.claimInvite);
 
 /**
  * @route POST /api/v1/client/onboarding
@@ -19,3 +19,4 @@ router.post('/claim-invite', validate(claimInviteSchema), clientController.claim
 router.post('/onboarding', authenticate, validate(clientOnboardingSchema), clientController.onboarding);
 
 export default router;
+
