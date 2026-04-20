@@ -55,6 +55,12 @@ export class ClientService {
     const userId = targetUserId;
 
     return prisma.$transaction(async (tx) => {
+      // 0. Get CA's firmId
+      const ca = await tx.user.findUnique({
+        where: { id: invitation.caId },
+        select: { firmId: true }
+      });
+
       // 1. Link User to CA
       await tx.user.update({
         where: { id: userId },
@@ -68,14 +74,16 @@ export class ClientService {
       });
 
       // 3. Link Profile (Handshake)
-      // This ensures the CA sees the client in their list immediately, 
-      // even if the client hasn't finished full onboarding yet.
       await tx.clientProfile.upsert({
         where: { userId: userId },
-        update: { caId: invitation.caId },
+        update: { 
+          caId: invitation.caId,
+          firmId: ca?.firmId
+        },
         create: {
           userId: userId,
           caId: invitation.caId,
+          firmId: ca?.firmId,
           name: invitation.name,
           phone: invitation.phone,
           stakeholderType: invitation.stakeholderType
