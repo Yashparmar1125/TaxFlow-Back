@@ -50,6 +50,21 @@ export class ClientService {
         data: { status: 'accepted' }
       });
 
+      // 3. Link Profile (Handshake)
+      // This ensures the CA sees the client in their list immediately, 
+      // even if the client hasn't finished full onboarding yet.
+      await tx.clientProfile.upsert({
+        where: { userId: targetUserId },
+        update: { caId: invitation.caId },
+        create: {
+          userId: targetUserId,
+          caId: invitation.caId,
+          name: invitation.name,
+          phone: invitation.phone,
+          stakeholderType: invitation.stakeholderType
+        }
+      });
+
       return { success: true, caId: invitation.caId };
     });
   }
