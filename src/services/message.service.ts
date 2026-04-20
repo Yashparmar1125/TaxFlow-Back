@@ -56,10 +56,17 @@ export class MessageService {
       if (!profile || thread.clientId !== profile.id) throw new ApiError(403, 'Forbidden');
     }
 
-    return prisma.message.findMany({
+    const messages = await prisma.message.findMany({
       where: { threadId: thread.id },
       orderBy: { createdAt: 'asc' }
     });
+    
+    return messages.map(m => ({
+      ...m,
+      taskId: thread!.taskId,
+      clientId: thread!.clientId,
+      caId: thread!.caId
+    }));
   }
 
   static async sendMessage(userId: string, role: Role, taskIdOrThreadId: string, content: string) {
@@ -137,6 +144,11 @@ export class MessageService {
       console.error('Failed to sync to Firebase RTDB:', err)
     );
 
-    return result;
+    return {
+      ...result,
+      taskId: thread.taskId,
+      clientId: thread.clientId,
+      caId: thread.caId
+    };
   }
 }
