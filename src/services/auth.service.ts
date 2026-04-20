@@ -218,7 +218,8 @@ export const authService = {
   },
 
   async firebaseSync(data: any) {
-    const { firebaseUid, email, fullName, avatarUrl, fcmToken, role, inviteCode } = data;
+    let { firebaseUid, email, fullName, avatarUrl, fcmToken, role, inviteCode } = data;
+    let invitationPhone: string | null = null;
 
     // 1. Find or Create User
     let user = await (prisma as any).user.findFirst({
@@ -247,7 +248,7 @@ export const authService = {
         
         // Auto-fill profile details from invite if not provided
         if (!fullName) fullName = invite.name;
-        const invitationPhone = invite.phone;
+        invitationPhone = invite.phone;
         
         // Mark as accepted
         await prisma.invitation.update({
