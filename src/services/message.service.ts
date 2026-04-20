@@ -26,20 +26,38 @@ export class MessageService {
     });
   }
 
-  static async getMessages(threadId: string, userId: string, role: string) {
-    const thread = await prisma.messageThread.findUnique({ where: { id: threadId } });
-    if (!thread) throw new ApiError(404, 'Thread not found');
+  static async getMessages(id: string, userId: string, role: string) {
+    let thread = await prisma.messageThread.findUnique({ where: { id } });
     
-    // Verify access
+    if (!thread) {
+      // Maybe it's a taskId?
+      const task = await prisma.complianceTask.findUnique({ where: { id } });
+      if (!task) throw new ApiError(404, 'Task or Thread not found');
+
+      // Check if this user has access to the task
+      if (role === Role.CA && task.caId !== userId) throw new ApiError(403, 'Forbidden');
+      if (role === Role.CLIENT) {
+        const profile = await prisma.clientProfile.findUnique({ where: { userId } });
+        if (!profile || task.clientId !== profile.id) throw new ApiError(403, 'Forbidden');
+      }
+
+      // Find the thread linked to this task
+      thread = await prisma.messageThread.findFirst({
+        where: { taskId: task.id }
+      });
+
+      if (!thread) return []; // No messages yet, so no thread exists
+    }
+    
+    // Verify access to the found thread
     if (role === Role.CA && thread.caId !== userId) throw new ApiError(403, 'Forbidden');
-    // For clients, we need to resolve their profile first
     if (role === Role.CLIENT) {
       const profile = await prisma.clientProfile.findUnique({ where: { userId } });
       if (!profile || thread.clientId !== profile.id) throw new ApiError(403, 'Forbidden');
     }
 
     return prisma.message.findMany({
-      where: { threadId },
+      where: { threadId: thread.id },
       orderBy: { createdAt: 'asc' }
     });
   }
