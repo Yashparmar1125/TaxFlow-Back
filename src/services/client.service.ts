@@ -48,10 +48,16 @@ export class ClientService {
 
     if (invitation.expiresAt < new Date()) throw new ApiError(400, 'Invite expired');
 
+    if (!targetUserId) {
+        throw new ApiError(400, 'User identification required to claim invite');
+    }
+
+    const userId = targetUserId;
+
     return prisma.$transaction(async (tx) => {
       // 1. Link User to CA
       await tx.user.update({
-        where: { id: targetUserId },
+        where: { id: userId },
         data: { caId: invitation.caId }
       });
 
@@ -65,10 +71,10 @@ export class ClientService {
       // This ensures the CA sees the client in their list immediately, 
       // even if the client hasn't finished full onboarding yet.
       await tx.clientProfile.upsert({
-        where: { userId: targetUserId },
+        where: { userId: userId },
         update: { caId: invitation.caId },
         create: {
-          userId: targetUserId,
+          userId: userId,
           caId: invitation.caId,
           name: invitation.name,
           phone: invitation.phone,
