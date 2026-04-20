@@ -11,7 +11,7 @@ export class ClientService {
    */
   static async claimInvite(identifier: { userId?: string, email?: string, phone?: string | null }, code: string) {
     const invitation = await prisma.invitation.findUnique({
-      where: { code },
+      where: { code: code.trim().toUpperCase() },
     });
 
     if (!invitation) throw new ApiError(404, 'Invalid invite code');
